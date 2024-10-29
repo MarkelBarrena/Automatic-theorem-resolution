@@ -1,0 +1,12 @@
+C:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\obj\Debug\net6.0\prueba.csproj.AssemblyReference.cache
+C:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\obj\Debug\net6.0\prueba.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\obj\Debug\net6.0\prueba.AssemblyInfoInputs.cache
+C:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\obj\Debug\net6.0\prueba.AssemblyInfo.cs
+C:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\obj\Debug\net6.0\prueba.csproj.CoreCompileInputs.cache
+C:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\obj\Debug\net6.0\prueba.dll
+C:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\obj\Debug\net6.0\refint\prueba.dll
+C:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\obj\Debug\net6.0\prueba.pdb
+c:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\prueba.deps.json
+c:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\prueba.dll
+c:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\obj\Debug\net6.0\ref\prueba.dll
+c:\Users\barre\OneDrive\Documentos\GitHub\Automatic-theorem-resolution\prueba.pdb
