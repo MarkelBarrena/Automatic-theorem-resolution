@@ -48,10 +48,12 @@ The reduction:
  */
 
 ghost function directed_to_undirected_graph(g: Graph): Graph
+    requires |g|>0
     requires validGraph(g)
     // ensures directed(validUndirectedGraph(g))
 {
-    directed_to_undirected_graph_(g, 0)
+    var eg := extend_graph(g);
+    directed_to_undirected_graph_(eg, |g|)
 }
 
 ghost function extend_graph(g: Graph): Graph
@@ -64,7 +66,6 @@ ghost function extend_graph(g: Graph): Graph
     ensures forall f :: |g|<=f<|g|*3 ==> (forall c :: 0<=c<|g|*3 ==> !extend_graph(g)[f][c])
 {
     var g':= add_columns(g, |g|-1);
-    add_columns_aux_Lemma(g, |g|-1);
     g' + seq(|g|*2, i => seq(|g|*3, i => false))
 }
 
@@ -72,10 +73,11 @@ ghost function add_columns(g: Graph, i: int): Graph
     requires -1<=i<|g|
     requires validGraph(g)
     ensures |g|==|add_columns(g, i)|
-    ensures forall j :: i< j<|g| ==> |add_columns(g, i)[j]| == |g|
-    ensures forall j :: 0<=j<=i ==> |add_columns(g, i)[j]| == |g|*3
+    ensures forall f :: i< f<|g| ==> |add_columns(g, i)[f]| == |g|
+    ensures forall f :: i< f<|g| ==> add_columns(g, i)[f] == g[f]
+    ensures forall f :: 0<=f<=i ==> |add_columns(g, i)[f]| == |g|*3
     ensures forall f :: 0<=f<=i ==> (forall c :: |g|<=c<|g|*3 ==> !add_columns(g,i)[f][c])
-    // ensures i>=0 ==> (add_columns(g, i)[i][0..|g|] == g[i])
+    ensures forall f :: 0<=f<=i ==> (add_columns(g, i)[f][0..|g|] == g[f])
 {
     if i==-1 then g else
         var g':= add_columns(g, i-1);
@@ -83,30 +85,41 @@ ghost function add_columns(g: Graph, i: int): Graph
         g'[i:= s]
 }
 
-lemma add_columns_aux_Lemma(g: Graph, i: int)
-    requires 0<=i<|g|
-    requires validGraph(g)
-    ensures forall f :: 0<=f<=i ==> (add_columns(g, i)[f][0..|g|] == g[f])
-{
-    if i>0
-    {
-        add_columns_aux_Lemma(g, i-1);
-        add_columns_aux_Lemma2(g, i);
-    }
-}
+// lemma add_columns_aux_Lemma(g: Graph, i: int)
+//     requires 0<=i<|g|
+//     requires validGraph(g)
+//     ensures forall f :: 0<=f<=i ==> (add_columns(g, i)[f][0..|g|] == g[f])
+// {
+//     if i>0
+//     {
+//         add_columns_aux_Lemma(g, i-1);
+//         add_columns_aux_Lemma2(g, i);
+//     }
+// }
 
-lemma add_columns_aux_Lemma2(g: Graph, i: int)
-    requires 0<=i<|g|
-    requires validGraph(g)
-    ensures add_columns(g, i)[i][0..|g|]==g[i]
-{
-    if i>0
-    {
-        add_columns_aux_Lemma2(g, i-1);
-        assert add_columns(g, i-1)[i-1][0..|g|]==g[i-1];
+// lemma add_columns_aux_Lemma2(g: Graph, i: int)
+//     requires 0<=i<|g|
+//     requires validGraph(g)
+//     ensures add_columns(g, i)[i][0..|g|]==g[i]
+// {
+//     if i>0
+//     {
+//         var addC := add_columns(g, i);
 
-    }
-}
+//         add_columns_aux_Lemma2(g, i-1);
+//         var g':= add_columns(g, i-1);
+//         assert g'[i-1][0..|g|]==g[i-1];
+//         assert g'[i]==g[i];
+        
+//         var s: seq<bool> := g'[i]+ seq(|g|*2, i => false);
+//         assert addC == g'[i:= s];
+
+//         assert add_columns(g, i)[i] == s;
+        
+//         assert forall t :: 0<=t<|g| ==> (s[t] == g[i][t]);
+//         assert s[0..|g|]==g[i];
+//     }
+// }
 
 lemma playground()
 {
@@ -132,11 +145,19 @@ lemma playground()
 }
 
 ghost function directed_to_undirected_graph_(g: Graph, i: int): Graph
+    requires |g|>0
     requires validGraph(g)
     requires 0<=i<=|g|
 {
-    if i==|g| then g else
-        var g' := g;
-        g'
-        // in_nodes(g, i)
+    if i==-1 then g else
+        var g' := directed_to_undirected_graph_(g, i-1);
+        var iN := in_nodes(g', i);
+}
+
+ghost function in_nodes(g: Graph, i: int): Graph
+    requires |g|>0
+    requires validGraph(g)
+    requires 0<=i<|g|
+{
+    in_nodes_(g, i, )
 }
