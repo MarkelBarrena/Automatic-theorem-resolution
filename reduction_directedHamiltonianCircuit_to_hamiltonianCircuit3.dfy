@@ -145,7 +145,7 @@ ghost predicate unconnected_in_out_graph(g: Graph, s: int)
 {
     forall f :: 0<=f< s ==> (forall c :: 0<=c<|g| ==>
         (
-            ((c==f+s || c==f+s*2) ==> g[f][c])     //out node: i+s*2, in node: i+s
+            ((c==f+s || c==f+s*2) ==> g[f][c])     //out node: i+s, in node: i+s*2
             &&
             ((c!=f+s && c!=f+s*2) ==> !g[f][c])    //rest: false
         )
@@ -154,14 +154,14 @@ ghost predicate unconnected_in_out_graph(g: Graph, s: int)
     forall f :: s<=f<|g| ==> (forall c :: 0<=c<|g| ==> !g[f][c])
 }
 
-ghost predicate in_out_nodes_unconnected(g: Graph, s: int, n: int)
+ghost predicate out_node_unconnected(g: Graph, g0: Graph, n: int)
     requires validUndirectedGraph(g)
-    requires |g|==s*3
-    requires 0<=n< s
+    requires |g|==|g0|*3
+    requires 0<=n< |g0|
 {
-    (forall c :: 0<=c<|g| ==> !g[n+s][c])
-    &&
-    (forall c :: 0<=c<|g| ==> !g[n+s*2][c])
+    forall c :: 0<=c< |g| ==> !g[n+|g0|][c] //no tiene nodos salientes
+    // &&
+    // (forall c :: 0<=c<|g| ==> !g[n+s*2][c])
 }
 
 ghost function direction_equivalence(g: Graph, g': Graph): Graph
@@ -193,9 +193,9 @@ ghost function direction_equivalence_node(g: Graph, g': Graph, n: int): Graph
     requires validUndirectedGraph(g')
     requires |g'|==|g|*3
     requires 0<=n<|g|
+    requires out_node_unconnected(g', g, n)
 {
-    // direction_equivalence_node_(g, g', n, |g|-1)
-    g'
+    direction_equivalence_node_(g, g', n, |g|-1)
 }
 
 /**
@@ -214,24 +214,84 @@ ghost function direction_equivalence_node_(g: Graph, g': Graph, n: int, i: int):
     requires validUndirectedGraph(g')
     requires 0<=n<|g|
     requires -1<=i<|g|
-    requires in_out_nodes_unconnected(g', |g|, n)
+    requires out_node_unconnected(g', g, n)
     ensures |direction_equivalence_node_(g, g', n, i)| == |g'|
     ensures validUndirectedGraph(direction_equivalence_node_(g, g', n, i))
     // ensures forall 
-    ensures i>=0 ==> (g[n][i] <==> direction_equivalence_node_(g, g', n, i)[n+|g|][i+|g|*2]) //no prueba la vuelta
+    // ensures forall f :: i< f<|g| ==> (g'[n+|g|][f+|g|*2] == direction_equivalence_node_(g, g', n, i)[n+|g|][f+|g|*2])
+    // ensures forall f :: i< f<|g| ==> !direction_equivalence_node_(g, g', n, i)[n+|g|][f+|g|*2]
+    // ensures i>=0 ==> (g[n][i] <==> direction_equivalence_node_(g, g', n, i)[n+|g|][i+|g|*2]) //no prueba la vuelta
     // ensures forall c :: 0<=c<=i ==>
     // (
     //     g[n][c] <==> direction_equivalence_node_(g, g', n, i)[n+|g|][c+|g|*2]
     // )
 {
-    if i==-1 then g' else
+    if i==-1 then
+        assert out_node_unconnected(g', g, n);
+        assert !g'[n+|g|][i+|g|*2];
+        assert forall f :: i< f<|g| ==> !g'[n+|g|][f+|g|*2];
+        g'
+    else
         var g'' := direction_equivalence_node_(g, g', n, i-1);
+        // assert !g''[n+|g|][i+|g|*2];
+        // assert forall f :: i<= f<|g| ==> !g''[n+|g|][f+|g|*2];
         //recorrer fila: si columna es true entonces [n+s](n_out)[i+s*2](i_in) := true
         if g[n][i] then
             var f_aux1 := g''[n+|g|];
             var f_aux2 := f_aux1[..i+|g|*2]+[true]+f_aux1[i+|g|*2+1..];
+            // assert forall f :: i< f<|g| ==> !f_aux2[f+|g|*2];
             g''[n+|g| := f_aux2]
         else
-            assert !g''[n+|g|][i+|g|*2];    //ESTO
+            // assert out_nodes_unconnected(g', g, n);
+            // assume forall c :: 0<=c<|g| ==> !g'[n+|g|][c+2*|g|];
+            // assert !g''[n+|g|][i+|g|*2];    //ESTO: si !arista(n,i) -> !arista(n_out,i_in)
+            // assert forall f :: i< f<|g| ==> g''[n+|g|][f+|g|*2];
             g''
 }
+
+lemma direction_equivalence_node_lemma1(g: Graph, g': Graph, n: int, i: int)
+    requires |g|>0
+    requires validGraph(g)
+    requires validGraph(g')
+    requires |g'|==|g|*3
+    requires validUndirectedGraph(g')
+    requires 0<=n<|g|
+    requires -1<=i<|g|-1
+    requires out_node_unconnected(g', g, n)
+    ensures forall c :: 0<=c<=i ==>
+    (
+        g[n][c] <==> direction_equivalence_node_(g, g', n, i)[n+|g|][c+|g|*2]
+    )
+{
+    if i>0
+    {
+        direction_equivalence_node_lemma1(g, g', n, i-1);
+        direction_equivalence_node_lemma2(g, g', n, i);
+        if g[n][i]
+        {
+            assume forall c :: 0<=c<=i ==>
+            (
+                g[n][c] <==> direction_equivalence_node_(g, g', n, i)[n+|g|][c+|g|*2]
+            );
+        }
+        else
+        {
+            var g'' := direction_equivalence_node_(g, g', n, i-1);
+            direction_equivalence_node_lemma2(g, g', n, i-1);
+            assert direction_equivalence_node_(g, g', n, i) == g'';
+            assert forall f :: i<= f<|g| ==> !g''[n+|g|][f+|g|*2];
+        }
+    }
+}
+
+lemma direction_equivalence_node_lemma2(g: Graph, g': Graph, n: int, i: int)
+    requires |g|>0
+    requires validGraph(g)
+    requires validGraph(g')
+    requires |g'|==|g|*3
+    requires validUndirectedGraph(g')
+    requires 0<=n<|g|
+    requires -1<=i<|g|-1
+    requires out_node_unconnected(g', g, n)
+    ensures forall f :: i< f<|g| ==> !direction_equivalence_node_(g, g', n, i)[n+|g|][f+|g|*2]
+{}
