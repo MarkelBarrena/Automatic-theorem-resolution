@@ -38,20 +38,20 @@ ghost predicate isDirectedHamiltonianCircuit_(g: Graph, circuit: seq<nat>, i: in
 }
 
 ghost predicate undirectedHamiltonianCircuit(g: Graph)
-    requires validGraph(g)
+    requires validUndirectedGraph(g)
 {
     |g|>3 && exists hc :: isUndirectedHamiltonianCircuit(g, hc)
 }
 
 ghost predicate isUndirectedHamiltonianCircuit(g: Graph, circuit: seq<nat>)
-    requires validGraph(g)
+    requires validUndirectedGraph(g)
     requires |g|>3
 {
     hamiltonianCircuitPartialCorrectness(g, circuit) && isUndirectedHamiltonianCircuit_(g, circuit, 1)
 }
 
 ghost predicate isUndirectedHamiltonianCircuit_(g: Graph, circuit: seq<nat>, i: int)
-    requires validGraph(g)
+    requires validUndirectedGraph(g)
     requires hamiltonianCircuitPartialCorrectness(g, circuit)
     requires 0<i<|g|
     decreases |g|-i
@@ -117,7 +117,6 @@ ghost predicate out_node_unconnected(g: Graph, g0: Graph, n: int)
 /////// REDUCTION FUNCTION ///////
 
 ghost function directed_to_undirected_graph(g: Graph): Graph
-    requires |g|>0
     requires validGraph(g)
     //size relation
     ensures |directed_to_undirected_graph(g)| == |g|*3
@@ -128,7 +127,7 @@ ghost function directed_to_undirected_graph(g: Graph): Graph
     //direction relation: n1->n2 in g only and only if n1_out-n2_in in g'
     ensures forall f :: 0<=f<|g| ==> (forall c :: 0<=c<|g| ==> (g[f][c] <==> directed_to_undirected_graph(g)[f+|g|][c+|g|*2]))
 {
-    direction_equivalence(g, in_out_nodes(extended_graph(g), |g|))
+    if |g|==0 then g else direction_equivalence(g, in_out_nodes(extended_graph(g), |g|))
 }
 
 ghost function extended_graph(g: Graph): Graph
@@ -288,4 +287,37 @@ ghost function direction_equivalence_node_(g: Graph, g': Graph, n: int, i: int):
             gF
         else
             g''
+}
+
+
+///// REDUCTION COMPLETNESS /////
+
+lemma reduction_lemma(g: Graph)
+    requires validGraph(g)
+    ensures directedHamiltonianCircuit(g) <==> undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
+{
+    if directedHamiltonianCircuit(g)
+    {
+        reduction_lemma_right(g);
+    }
+    if undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
+    {
+        reduction_lemma_left(g);
+    }
+}
+
+lemma reduction_lemma_right(g: Graph)
+    requires validGraph(g)
+    requires directedHamiltonianCircuit(g)
+    ensures undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
+{
+    
+}
+
+lemma reduction_lemma_left(g: Graph)
+    requires validGraph(g)
+    requires undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
+    ensures directedHamiltonianCircuit(g)
+{
+
 }
