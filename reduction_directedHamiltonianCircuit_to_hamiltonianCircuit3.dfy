@@ -22,8 +22,9 @@ ghost predicate directedHamiltonianCircuit(g: Graph)
 ghost predicate isDirectedHamiltonianCircuit(g: Graph, circuit: seq<nat>)
     requires validGraph(g)
     requires |g|>3
+    ensures forall i :: 0<i<|g| ==> g[circuit[i-1]][circuit[i]]
 {
-    hamiltonianCircuitPartialCorrectness(g, circuit) && isDirectedHamiltonianCircuit_(g, circuit, 1)
+    hamiltonianCircuitPartialCorrectness(g, circuit) && isDirectedHamiltonianCircuit_(g, circuit, |g|)
 }
 
 ghost predicate isDirectedHamiltonianCircuit_(g: Graph, circuit: seq<nat>, i: int)
@@ -31,11 +32,20 @@ ghost predicate isDirectedHamiltonianCircuit_(g: Graph, circuit: seq<nat>, i: in
     requires hamiltonianCircuitPartialCorrectness(g, circuit)
     requires 0<i<|g|
     decreases |g|-i
+    // ensures forall j :: 0<j<|g| ==> g[circuit[j-1]][circuit[j]]
 {
     (i==|g|-1 && g[circuit[i]][circuit[0]])
     ||
     (i<|g|-1 && g[circuit[i-1]][circuit[i]] && isDirectedHamiltonianCircuit_(g, circuit, i+1))
 }
+
+lemma provePostconditionIsDirectedHamiltonianCircuit(g: Graph, circuit: seq<nat>)
+    requires validGraph(g)
+    requires |g| > 3
+    requires hamiltonianCircuitPartialCorrectness(g, circuit)
+    requires isDirectedHamiltonianCircuit_(g, circuit, 1)
+    ensures forall i :: 0 < i < |g| ==> g[circuit[i-1]][circuit[i]]
+{}
 
 ghost predicate undirectedHamiltonianCircuit(g: Graph)
     requires validUndirectedGraph(g)
@@ -311,7 +321,10 @@ lemma reduction_lemma_right(g: Graph)
     requires directedHamiltonianCircuit(g)
     ensures undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
 {
-    
+    var g' := directed_to_undirected_graph(g);
+    var dhc := directedHamiltonianCircuit_witness(g);
+    assert isDirectedHamiltonianCircuit_(g, dhc, 1);
+    assert forall i :: 0<i<|g| ==> g[dhc[i-1]][dhc[i]];
 }
 
 lemma reduction_lemma_left(g: Graph)
@@ -321,3 +334,13 @@ lemma reduction_lemma_left(g: Graph)
 {
 
 }
+
+ghost function directedHamiltonianCircuit_witness(g: Graph): seq<nat>
+    requires validGraph(g)
+    requires directedHamiltonianCircuit(g)
+    ensures isDirectedHamiltonianCircuit(g, (directedHamiltonianCircuit_witness(g)))
+
+ghost function undirectedHamiltonianCircuit_witness(g: Graph): seq<nat>
+    requires validUndirectedGraph(g)
+    requires undirectedHamiltonianCircuit(g)
+    ensures isUndirectedHamiltonianCircuit(g, (undirectedHamiltonianCircuit_witness(g)))
