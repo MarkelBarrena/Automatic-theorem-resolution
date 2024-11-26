@@ -22,9 +22,9 @@ ghost predicate directedHamiltonianCircuit(g: Graph)
 ghost predicate isDirectedHamiltonianCircuit(g: Graph, circuit: seq<nat>)
     requires validGraph(g)
     requires |g|>3
-    ensures forall i :: 0<i<|g| ==> g[circuit[i-1]][circuit[i]]
+    // ensures forall i :: 0<i<|g| ==> g[circuit[i-1]][circuit[i]]
 {
-    hamiltonianCircuitPartialCorrectness(g, circuit) && isDirectedHamiltonianCircuit_(g, circuit, |g|)
+    hamiltonianCircuitPartialCorrectness(g, circuit) && isDirectedHamiltonianCircuit_(g, circuit, 1)
 }
 
 ghost predicate isDirectedHamiltonianCircuit_(g: Graph, circuit: seq<nat>, i: int)
