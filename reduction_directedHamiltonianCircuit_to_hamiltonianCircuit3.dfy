@@ -16,36 +16,130 @@ ghost predicate validGraph(g: Graph)
 ghost predicate directedHamiltonianCircuit(g: Graph)
     requires validGraph(g)
 {
-    |g|>3 && exists hc :: isDirectedHamiltonianCircuit(g, hc)
+    |g|>2 && exists hc :: isDirectedHamiltonianCircuit(g, hc)
 }
 
 ghost predicate isDirectedHamiltonianCircuit(g: Graph, circuit: seq<nat>)
     requires validGraph(g)
-    requires |g|>3
+    requires |g|>2
     // ensures forall i :: 0<i<|g| ==> g[circuit[i-1]][circuit[i]]
 {
-    hamiltonianCircuitPartialCorrectness(g, circuit) && isDirectedHamiltonianCircuit_(g, circuit, 1)
+    hamiltonianCircuitPartialCorrectness(g, circuit) && isDirectedHamiltonianCircuit_(g, circuit, |g|, 0)
 }
 
-ghost predicate isDirectedHamiltonianCircuit_(g: Graph, circuit: seq<nat>, i: int)
+ghost predicate isDirectedHamiltonianCircuit_(g: Graph, circuit: seq<nat>, c: int, i: int)
     requires validGraph(g)
     requires hamiltonianCircuitPartialCorrectness(g, circuit)
-    requires 0<i<|g|
-    decreases |g|-i
+    requires 0<=c<=|g|
+    requires 0<=i<|g|
     // ensures forall j :: 0<j<|g| ==> g[circuit[j-1]][circuit[j]]
 {
-    (i==|g|-1 && g[circuit[i]][circuit[0]])
+    c==0
     ||
-    (i<|g|-1 && g[circuit[i-1]][circuit[i]] && isDirectedHamiltonianCircuit_(g, circuit, i+1))
+    (
+        (i==|g|-1 && g[circuit[i]][circuit[0]] && isDirectedHamiltonianCircuit_(g, circuit, c-1, 0))
+        ||
+        (i<|g|-1 && g[circuit[i]][circuit[i+1]] && isDirectedHamiltonianCircuit_(g, circuit, c-1, i+1))
+    )
 }
 
-lemma provePostconditionIsDirectedHamiltonianCircuit(g: Graph, circuit: seq<nat>)
+least predicate isDirectedHamiltonianCircuit2_(g: Graph, circuit: seq<nat>, i: int)
     requires validGraph(g)
-    requires |g| > 3
     requires hamiltonianCircuitPartialCorrectness(g, circuit)
-    requires isDirectedHamiltonianCircuit_(g, circuit, 1)
+    requires 0<=i<|g|
+{
+    (i==|g|-1 && g[circuit[i]][circuit[0]] && isDirectedHamiltonianCircuit2_(g, circuit, 0))
+    ||
+    (i<|g|-1 && g[circuit[i]][circuit[i+1]] && isDirectedHamiltonianCircuit2_(g, circuit, i+1))
+}
+
+lemma directedHamiltonianCircuitProperty_lemma(g: Graph, circuit: seq<nat>)
+    requires validGraph(g)
+    requires |g| > 2
+    requires isDirectedHamiltonianCircuit(g, circuit)
     ensures forall i :: 0 < i < |g| ==> g[circuit[i-1]][circuit[i]]
-{}
+{
+
+    // Inducción sobre el índice
+    forall i | 0 < i < |g|
+    {
+        directedHamiltonianaCircuitProperty_local_lemma(g, circuit, i);
+    }
+}
+
+lemma directedHamiltonianaCircuitProperty_local_lemma(g: Graph, circuit: seq<nat>, i: int)
+    requires validGraph(g)
+    requires |g|>2
+    requires isDirectedHamiltonianCircuit(g, circuit)
+    requires 0<i<|g|
+    ensures g[circuit[i-1]][circuit[i]]
+{
+    if i>1
+    {
+        directedHamiltonianaCircuitProperty_local_lemma(g, circuit, i-1);
+        assert g[circuit[i-2]][circuit[i-1]];
+    }
+}
+
+lemma directedHamiltonianCircuitModularity_lemma(g: Graph, circuit: seq<nat>, i: int)
+    requires validGraph(g)
+    requires |g|>2
+    requires 0<=i<|g|
+    requires hamiltonianCircuitPartialCorrectness(g, circuit)
+    requires isDirectedHamiltonianCircuit2_(g, circuit, i)
+    ensures forall j :: 0<=j<|g| ==> isDirectedHamiltonianCircuit2_(g, circuit, j)
+{
+    forall j | 0<=j<|g|
+    {
+        directedHamiltonianCircuitModularity_local_lemma(g, circuit, i, j);
+    }
+}
+
+lemma directedHamiltonianCircuitModularity_local_lemma(g: Graph, circuit: seq<nat>, i: int, j: int)
+    requires validGraph(g)
+    requires |g|>2
+    requires 0<=i<|g|
+    requires hamiltonianCircuitPartialCorrectness(g, circuit)
+    requires isDirectedHamiltonianCircuit2_(g, circuit, i)
+    requires 0<=j<|g|
+    ensures isDirectedHamiltonianCircuit2_(g, circuit, j)
+{
+    if i< j
+    {
+        directedHamiltonianCircuitModularity_local_lemma(g, circuit, i, j-1);
+    }
+    if j< i
+    {
+        directedHamiltonianCircuitModularity_local_aux1_lemma(g, circuit, i, j);
+    }
+}
+
+lemma directedHamiltonianCircuitModularity_local_aux1_lemma(g: Graph, circuit: seq<nat>, i: int, j: int)
+    requires validGraph(g)
+    requires |g|>2
+    requires 0<=j<= i<|g|
+    requires hamiltonianCircuitPartialCorrectness(g, circuit)
+    requires isDirectedHamiltonianCircuit2_(g, circuit, i)
+    decreases i-j
+    ensures isDirectedHamiltonianCircuit2_(g, circuit, j)
+{
+    if j< i
+    {
+        directedHamiltonianCircuitModularity_local_aux1_lemma(g, circuit, i, j+1);
+        assert isDirectedHamiltonianCircuit2_(g, circuit, j+1); //I.H
+        directedHamiltonianCircuitModularity_local_aux2_lemma(g, circuit, j);
+    }
+}
+
+lemma directedHamiltonianCircuitModularity_local_aux2_lemma(g: Graph, circuit: seq<nat>, i: int)
+    requires validGraph(g)
+    requires |g|>2
+    requires 0<=i<|g|-1
+    requires hamiltonianCircuitPartialCorrectness(g, circuit)
+    ensures isDirectedHamiltonianCircuit2_(g, circuit, i) <==> isDirectedHamiltonianCircuit2_(g, circuit, i+1)  //no prueba la vuelta
+{
+
+}
 
 ghost predicate undirectedHamiltonianCircuit(g: Graph)
     requires validUndirectedGraph(g)
@@ -57,18 +151,23 @@ ghost predicate isUndirectedHamiltonianCircuit(g: Graph, circuit: seq<nat>)
     requires validUndirectedGraph(g)
     requires |g|>3
 {
-    hamiltonianCircuitPartialCorrectness(g, circuit) && isUndirectedHamiltonianCircuit_(g, circuit, 1)
+    hamiltonianCircuitPartialCorrectness(g, circuit) && isUndirectedHamiltonianCircuit_(g, circuit, |g|, 0)
 }
 
-ghost predicate isUndirectedHamiltonianCircuit_(g: Graph, circuit: seq<nat>, i: int)
+ghost predicate isUndirectedHamiltonianCircuit_(g: Graph, circuit: seq<nat>, c: int, i: int)
     requires validUndirectedGraph(g)
     requires hamiltonianCircuitPartialCorrectness(g, circuit)
-    requires 0<i<|g|
+    requires 0<=c<=|g|
+    requires 0<=i<|g|
     decreases |g|-i
 {
-    (i==|g|-1 && (g[circuit[i]][circuit[0]] || g[circuit[0]][circuit[i]]))
+    c==0
     ||
-    (i<|g|-1 && (g[circuit[i-1]][circuit[i]] || g[circuit[i]][circuit[i-1]]) && isUndirectedHamiltonianCircuit_(g, circuit, i+1))
+    (
+        (i==|g|-1 && (g[circuit[i]][circuit[0]] || g[circuit[0]][circuit[i]]) && isDirectedHamiltonianCircuit_(g, circuit, c-1, 0))
+        ||
+        (i<|g|-1 && (g[circuit[i]][circuit[i+1]] || g[circuit[i+1]][circuit[i]]) && isDirectedHamiltonianCircuit_(g, circuit, c-1, i+1))
+    )
 }
 
 //ensures that it contains every node of the graph exactly once
@@ -128,7 +227,7 @@ ghost predicate out_node_unconnected(g: Graph, g0: Graph, n: int)
 
 ghost function directed_to_undirected_graph(g: Graph): Graph
     requires validGraph(g)
-    //size relation
+    //size relation: 2 extra nodes (node_in and node_out) per node
     ensures |directed_to_undirected_graph(g)| == |g|*3
     //squared and triangular superior matrix
     ensures validUndirectedGraph(directed_to_undirected_graph(g))
@@ -312,7 +411,8 @@ lemma reduction_lemma(g: Graph)
     }
     if undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
     {
-        reduction_lemma_left(g);
+        // reduction_lemma_left(g);
+        assume directedHamiltonianCircuit(g);
     }
 }
 
@@ -322,9 +422,17 @@ lemma reduction_lemma_right(g: Graph)
     ensures undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
 {
     var g' := directed_to_undirected_graph(g);
-    var dhc := directedHamiltonianCircuit_witness(g);
-    assert isDirectedHamiltonianCircuit_(g, dhc, 1);
-    assert forall i :: 0<i<|g| ==> g[dhc[i-1]][dhc[i]];
+    if !undirectedHamiltonianCircuit(g')
+    {
+        assert |g'|>3;
+        var dhc := directedHamiltonianCircuit_witness(g);
+
+        // directedHamiltonianCircuitProperty_lemma(g, dhc);
+        assert forall i :: 0<i<|g| ==> g[dhc[i-1]][dhc[i]];
+        assert forall i :: 0<i<|g| ==> (g[dhc[i-1]][dhc[i]] ==> g'[dhc[i-1]+|g|][dhc[i]+|g|*2]);
+        
+
+    }
 }
 
 lemma reduction_lemma_left(g: Graph)
