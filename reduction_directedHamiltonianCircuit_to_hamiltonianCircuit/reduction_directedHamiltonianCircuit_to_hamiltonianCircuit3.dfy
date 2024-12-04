@@ -319,7 +319,7 @@ ghost predicate out_node_unconnected(g: Graph, g0: Graph, n: int)
 
 /////// REDUCTION FUNCTION ///////
 
-ghost function directed_to_undirected_graph(g: Graph): Graph
+ghost opaque function directed_to_undirected_graph(g: Graph): Graph
     requires validGraph(g)
     //size relation: 2 extra nodes (node_in and node_out) per node
     ensures |directed_to_undirected_graph(g)| == |g|*3
@@ -636,13 +636,22 @@ ghost function circuit_equivalence_(g: Graph, g': Graph, circuit: seq<nat>, i: i
         circuit_equivalence_(g, g', circuit, i)[3*j+2] == circuit[j]+|g|
     )
     //reverse relation
+    ensures i>=0 ==>
+    (
+        var circuit' := circuit_equivalence_(g, g', circuit, i);
+        circuit'[|circuit'|-3] == circuit[(|circuit'|-3)/3]+|g|*2
+        &&
+        circuit'[|circuit'|-2] == circuit[((|circuit'|-2)-1)/3]
+        &&
+        circuit'[|circuit'|-1] == circuit[((|circuit'|-1)-2)/3]+|g|
+    )
     // ensures forall j :: 0<=j<|circuit_equivalence_(g, g', circuit, i)| ==>
     // (
+    //     (j % 3 == 0 ==> (circuit_equivalence_(g, g', circuit, i)[j] == circuit[(j)/3]+|g|*2))
+    //     &&
     //     (j % 3 == 1 ==> (circuit_equivalence_(g, g', circuit, i)[j] == circuit[(j-1)/3]))
     //     &&
-    //     (j % 3 == 0 ==> (circuit_equivalence_(g, g', circuit, i)[j] == circuit[(j-1)/3]+|g|*2))
-    //     &&
-    //     (j % 3 == 2 ==> (circuit_equivalence_(g, g', circuit, i)[j] == circuit[(j-1)/3]+|g|))
+    //     (j % 3 == 2 ==> (circuit_equivalence_(g, g', circuit, i)[j] == circuit[(j-2)/3]+|g|))
     // )
     //nodes boundaries
     ensures forall j :: 0<j<|circuit_equivalence_(g, g', circuit, i)| ==> circuit_equivalence_(g, g', circuit, i)[j]<|g'|
@@ -653,12 +662,63 @@ ghost function circuit_equivalence_(g: Graph, g': Graph, circuit: seq<nat>, i: i
     if i==-1 then [] else
         var circuit' := circuit_equivalence_(g, g', circuit, i-1);
         var ret_circuit := circuit' + [circuit[i]+|g|*2] + [circuit[i]] + [circuit[i]+|g|];
-        assert |ret_circuit| == |circuit'|+3;
-        var i1, i2, i3 := |circuit'|, |circuit'|+1, |circuit'|+2;
-        assert ret_circuit[i1] == circuit[(i-1)/3]+|g|*2;
-        assert ret_circuit[i2] == circuit[(i-1)/3]+;
-        assert ret_circuit[i3] == circuit[(i-1)/3]+|g|
+        // assert |ret_circuit| == |circuit'|+3;
+        // var i1, i2, i3 := |circuit'|, |circuit'|+1, |circuit'|+2;
+        // assert ret_circuit[i1] == circuit[(i1)/3]+|g|*2;
+        // assert ret_circuit[i2] == circuit[(i2-1)/3];
+        // assert ret_circuit[i3] == circuit[(i3-2)/3]+|g|;
         ret_circuit
+}
+
+lemma circuit_equivalence_reverse_position_relation_lemma(g: Graph, g': Graph, circuit: seq<nat>, i: int)
+    requires validGraph(g)
+    requires |g|>2
+    requires isDirectedHamiltonianCircuit(g, circuit)
+    requires g' == directed_to_undirected_graph(g)
+    requires -1<=i<|circuit|
+    ensures var circuit' := circuit_equivalence_(g, g', circuit, i);
+        forall j :: 0<=j<|circuit'| ==>
+        (
+            (j % 3 == 0 ==> (circuit'[j] == circuit[(j)/3]+|g|*2))
+            &&
+            (j % 3 == 1 ==> (circuit'[j] == circuit[(j-1)/3]))
+            &&
+            (j % 3 == 2 ==> (circuit'[j] == circuit[(j-2)/3]+|g|))
+        )
+{
+    if i>0
+    {
+        circuit_equivalence_reverse_position_relation_lemma(g, g', circuit, i-1);
+        var circuit1 := circuit_equivalence_(g, g', circuit, i-1);
+        var circuit2 := circuit_equivalence_(g, g', circuit, i);
+        assert circuit2 == circuit_equivalence_(g, g', circuit, i-1) + [circuit[i]+|g|*2] + [circuit[i]] + [circuit[i]+|g|];
+        assert forall j :: 0<=j<|circuit1| ==>
+        (
+            (j % 3 == 0 ==> (circuit1[j] == circuit[(j)/3]+|g|*2))
+            &&
+            (j % 3 == 1 ==> (circuit1[j] == circuit[(j-1)/3]))
+            &&
+            (j % 3 == 2 ==> (circuit1[j] == circuit[(j-2)/3]+|g|))
+        );
+        var j1, j2, j3 := |circuit2|-3, |circuit2|-2, |circuit2|-1;
+        assert j1%3==0 && j2%3==1 && j3%3==2;
+        // assert
+        // (
+        //     (j1 % 3 == 0 && (circuit1[j1] == circuit[(j1)/3]+|g|*2))
+        //     &&
+        //     (j2 % 3 == 1 && (circuit1[j2] == circuit[(j2-1)/3]))
+        //     &&
+        //     (j3 % 3 == 2 && (circuit1[j3] == circuit[(j3-2)/3]+|g|))
+        // );
+        assume forall j :: 0<=j<|circuit2| ==>
+        (
+            (j % 3 == 0 ==> (circuit2[j] == circuit[(j)/3]+|g|*2))
+            &&
+            (j % 3 == 1 ==> (circuit2[j] == circuit[(j-1)/3]))
+            &&
+            (j % 3 == 2 ==> (circuit2[j] == circuit[(j-2)/3]+|g|))
+        );
+    }
 }
 
 lemma circuit_equivalence_connectivity_lemma(g: Graph, g': Graph, circuit: seq<nat>, i: int)
