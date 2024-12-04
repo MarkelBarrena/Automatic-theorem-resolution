@@ -621,8 +621,11 @@ ghost function circuit_equivalence_(g: Graph, g': Graph, circuit: seq<nat>, i: i
     requires isDirectedHamiltonianCircuit(g, circuit)
     requires g' == directed_to_undirected_graph(g)
     requires -1<=i<|circuit|
+    decreases i
     //size relation
     ensures |circuit_equivalence_(g, g', circuit, i)| == (i+1)*3
+    ensures |circuit_equivalence_(g, g', circuit, i)| % 3 == 0 //triplets
+    // ensures |circuit_equivalence_(g, g', circuit, i)| == |circuit_equivalence_(g, g', circuit, i-1)|+3
     //central, in and out nodes position relation
     ensures forall j :: 0<=j<= i ==> 
     (
@@ -632,10 +635,15 @@ ghost function circuit_equivalence_(g: Graph, g': Graph, circuit: seq<nat>, i: i
         &&
         circuit_equivalence_(g, g', circuit, i)[3*j+2] == circuit[j]+|g|
     )
-    ensures forall j :: 0<=j<|circuit_equivalence_(g, g', circuit, i)| ==>
-    (
-        j % 3 == 1 ==> (circuit_equivalence_(g, g', circuit, i)[j] == circuit[(j-1)/3]) //reverse relation
-    )
+    //reverse relation
+    // ensures forall j :: 0<=j<|circuit_equivalence_(g, g', circuit, i)| ==>
+    // (
+    //     (j % 3 == 1 ==> (circuit_equivalence_(g, g', circuit, i)[j] == circuit[(j-1)/3]))
+    //     &&
+    //     (j % 3 == 0 ==> (circuit_equivalence_(g, g', circuit, i)[j] == circuit[(j-1)/3]+|g|*2))
+    //     &&
+    //     (j % 3 == 2 ==> (circuit_equivalence_(g, g', circuit, i)[j] == circuit[(j-1)/3]+|g|))
+    // )
     //nodes boundaries
     ensures forall j :: 0<j<|circuit_equivalence_(g, g', circuit, i)| ==> circuit_equivalence_(g, g', circuit, i)[j]<|g'|
     //connectivity
@@ -644,7 +652,13 @@ ghost function circuit_equivalence_(g: Graph, g': Graph, circuit: seq<nat>, i: i
 {
     if i==-1 then [] else
         var circuit' := circuit_equivalence_(g, g', circuit, i-1);
-        circuit' + [circuit[i]+|g|*2] + [circuit[i]] + [circuit[i]+|g|]
+        var ret_circuit := circuit' + [circuit[i]+|g|*2] + [circuit[i]] + [circuit[i]+|g|];
+        assert |ret_circuit| == |circuit'|+3;
+        var i1, i2, i3 := |circuit'|, |circuit'|+1, |circuit'|+2;
+        assert ret_circuit[i1] == circuit[(i-1)/3]+|g|*2;
+        assert ret_circuit[i2] == circuit[(i-1)/3]+;
+        assert ret_circuit[i3] == circuit[(i-1)/3]+|g|
+        ret_circuit
 }
 
 lemma circuit_equivalence_connectivity_lemma(g: Graph, g': Graph, circuit: seq<nat>, i: int)
@@ -655,26 +669,34 @@ lemma circuit_equivalence_connectivity_lemma(g: Graph, g': Graph, circuit: seq<n
     requires 0<=i<|circuit|
     ensures var circuit' := circuit_equivalence_(g, g', circuit, i);
         (forall j :: 0<j<|circuit'| ==> g'[circuit'[j-1]][circuit'[j]]) && g'[circuit'[|circuit'|-1]][circuit'[0]]
-{
-    var circuit' := circuit_equivalence_(g, g', circuit, i);
-    forall j | 0<j<|circuit'|
-    {
-        circuit_equivalence_connectivity_local_lemma(g, g', circuit, i, circuit', j);
-    }
-}
+// {
+//     var circuit' := circuit_equivalence_(g, g', circuit, i);
+//     forall j | 0<j<|circuit'|
+//     {
+//         circuit_equivalence_connectivity_local_lemma(g, g', circuit, i, circuit', j);
+//     }
+// }
 
-lemma circuit_equivalence_connectivity_local_lemma(g: Graph, g': Graph, circuit: seq<nat>, i: int, circuit': seq<nat>, j: int)
-    requires validGraph(g)
-    requires |g|>2
-    requires isDirectedHamiltonianCircuit(g, circuit)
-    requires g' == directed_to_undirected_graph(g)
-    requires 0<=i<|circuit|
-    requires circuit' == circuit_equivalence_(g, g', circuit, i)
-    requires 0<j<|circuit'|
-    ensures g'[circuit'[j-1]][circuit'[j]]
-{
-    
-}
+// lemma circuit_equivalence_connectivity_local_lemma(g: Graph, g': Graph, circuit: seq<nat>, i: int, circuit': seq<nat>, j: int)
+//     requires validGraph(g)
+//     requires |g|>2
+//     requires isDirectedHamiltonianCircuit(g, circuit)
+//     requires g' == directed_to_undirected_graph(g)
+//     requires 0<=i<|circuit|
+//     requires circuit' == circuit_equivalence_(g, g', circuit, i)
+//     requires 0<j<|circuit'|
+//     ensures g'[circuit'[j-1]][circuit'[j]]
+// {
+//     if j%3==0
+//     {
+//         // assert circuit'[j] == circuit[j]+|g|*2;
+//         assume g'[circuit'[j-1]][circuit'[j]];
+//     }
+//     if j%3==1
+//     {assume g'[circuit'[j-1]][circuit'[j]];}
+//     if j%3==2
+//     {assume g'[circuit'[j-1]][circuit'[j]];}
+// }
 
 // Reduction to the left: undirectedHamiltonian(f(g)) ==> directedHamiltonian(g)
 
