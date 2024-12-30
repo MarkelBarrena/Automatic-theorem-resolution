@@ -45,7 +45,7 @@ module ReductionCompletness
     //returns the directed circuit's undirected equivalence
     ghost function circuit_equivalence(g: Graph, g': Graph, circuit: seq<nat>): seq<nat>
         requires validGraph(g)
-        requires |g|>2
+        requires |g|>0
         requires isDirectedHamiltonianCircuit(g, circuit)
         requires g' == directed_to_undirected_graph(g)
         ensures isUndirectedHamiltonianCircuit(g', circuit_equivalence(g, g', circuit))
@@ -68,7 +68,7 @@ module ReductionCompletness
      */
     ghost function circuit_equivalence_(g: Graph, g': Graph, circuit: seq<nat>, i: int): (seq<nat>, seq<nat>, seq<nat>, seq<nat>)
         requires validGraph(g)
-        requires |g|>2
+        requires |g|>0
         requires isDirectedHamiltonianCircuit(g, circuit)
         requires g' == directed_to_undirected_graph(g)
         requires -1<=i<|circuit|
@@ -113,7 +113,7 @@ module ReductionCompletness
     //postcondition of circuit equivalence: circuit equivalent sequence is a permutation of 2nd + 3rd + 4th returning sequences
     lemma circuit_equivalence_post_lemma(g: Graph, g': Graph, circuit: seq<nat>, i: int)
         requires validGraph(g)
-        requires |g|>2
+        requires |g|>0
         requires isDirectedHamiltonianCircuit(g, circuit)
         requires g' == directed_to_undirected_graph(g)
         requires -1<=i<|circuit|
@@ -128,7 +128,7 @@ module ReductionCompletness
     */
     lemma circuit_equivalence_no_duplicates_lemma(g: Graph, g': Graph, circuit: seq<nat>, i: int)
         requires validGraph(g)
-        requires |g|>2
+        requires |g|>0
         requires isDirectedHamiltonianCircuit(g, circuit)
         requires g' == directed_to_undirected_graph(g)
         requires -1<=i<|circuit|
@@ -161,6 +161,6 @@ module ReductionCompletness
         requires validGraph(g)
         requires undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
         ensures directedHamiltonianCircuit(g)
-    // {}
+    {} //see left_lemma_working_file.dfy
 
 }

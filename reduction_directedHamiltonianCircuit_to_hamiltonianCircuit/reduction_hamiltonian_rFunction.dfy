@@ -17,30 +17,30 @@ module ReductionFunction
     }
 
     //original nodes are only adjacent to their respective out and in nodes and there are only out->in vertex
-    ghost predicate in_out_graph(g: Graph, s: int)
+    ghost predicate in_out_graph(g: Graph)
         requires validUndirectedGraph(g)
-        requires |g|==s*3
+        requires |g|%3==0
     {
-        forall f :: 0<=f< s ==> (forall c :: 0<=c<|g| ==>
+        forall f :: 0<=f< |g|/3 ==> (forall c :: 0<=c<|g| ==>
             (
-                ((c==f+s || c==f+s*2) ==> g[f][c])     //out node: i+s, in node: i+s*2
+                ((c==f+|g|/3 || c==f+(|g|/3)*2) ==> g[f][c])     //out node: i+s, in node: i+s*2
                 &&
-                ((c!=f+s && c!=f+s*2) ==> !g[f][c])    //rest: false (original nodes are not interconnected)
+                ((c!=f+|g|/3 && c!=f+(|g|/3)*2) ==> !g[f][c])    //rest: false (original nodes are not interconnected)
             )
         )
         &&
-        (forall f :: s<=f< s*2 ==> (forall c :: s<=c< s*2 ==> !g[f][c]))    //no vertex from out to out
+        (forall f :: |g|/3<=f<(|g|/3)*2 ==> (forall c :: |g|/3<=c<(|g|/3)*2 ==> !g[f][c]))    //no vertex from out to out
         &&
-        (forall f :: s*2<=f< s*3 ==> (forall c :: s*2<=c< s*3 ==> !g[f][c]))    //no vertex from in to in
+        (forall f :: (|g|/3)*2<=f<|g| ==> (forall c :: (|g|/3)*2<=c<|g| ==> !g[f][c]))    //no vertex from in to in
     }
 
-    ghost predicate unconnected_in_out_graph(g: Graph, s: int)
+    ghost predicate unconnected_in_out_graph(g: Graph)
         requires validUndirectedGraph(g)
-        requires |g|==s*3
+        requires |g|%3==0
     {
-        in_out_graph(g, s)
+        in_out_graph(g)
         &&
-        forall f :: s<=f<|g| ==> (forall c :: 0<=c<|g| ==> !g[f][c])
+        forall f :: |g|/3<=f<|g| ==> (forall c :: 0<=c<|g| ==> !g[f][c])
     }
 
     ghost predicate out_node_unconnected(g: Graph, g0: Graph, n: int)
@@ -60,7 +60,7 @@ module ReductionFunction
         //squared and triangular superior matrix
         ensures validUndirectedGraph(directed_to_undirected_graph(g))
         //original nodes are only adjacent to their respective out and in nodes and there are only out->in vertex
-        ensures in_out_graph(directed_to_undirected_graph(g), |g|)
+        ensures in_out_graph(directed_to_undirected_graph(g))
         //direction relation: n1->n2 in g only and only if n1_out-n2_in in g'
         ensures forall f :: 0<=f<|g| ==> (forall c :: 0<=c<|g| ==> (g[f][c] <==> directed_to_undirected_graph(g)[f+|g|][c+|g|*2]))
     {
@@ -84,7 +84,7 @@ module ReductionFunction
         requires |g|==s*3
         ensures |in_out_nodes(g, s)| == |g|
         ensures validUndirectedGraph(in_out_nodes(g, s))
-        ensures unconnected_in_out_graph(in_out_nodes(g, s), s)
+        ensures unconnected_in_out_graph(in_out_nodes(g, s))
     {
         in_out_nodes_(g, s, s-1)
     }
@@ -120,13 +120,13 @@ module ReductionFunction
         requires validGraph(g)
         requires validUndirectedGraph(g')
         requires |g'|==|g|*3
-        requires unconnected_in_out_graph(g', |g|)
+        requires unconnected_in_out_graph(g')
         //size persistence
         ensures |direction_equivalence(g, g')| == |g'|
         //squared and triangular superior matrix
         ensures validUndirectedGraph(direction_equivalence(g, g'))
         //original nodes are only adjacent to their respective out and in nodes and there are only out->in vertex
-        ensures in_out_graph(direction_equivalence(g, g'), |g|)
+        ensures in_out_graph(direction_equivalence(g, g'))
         //modifying property: n1->n2 in g only and only if n1_out-n2_in in g'
         ensures forall f :: 0<=f<|g| ==> (forall c :: 0<=c<|g| ==> (g[f][c] <==> direction_equivalence(g, g')[f+|g|][c+|g|*2]))
     {
@@ -139,7 +139,7 @@ module ReductionFunction
         requires validUndirectedGraph(g')
         requires |g'|==|g|*3
         requires -1<=i<|g|
-        requires unconnected_in_out_graph(g', |g|)
+        requires unconnected_in_out_graph(g')
         ensures |direction_equivalence_(g, g', i)| == |g'|
         ensures validUndirectedGraph(direction_equivalence_(g, g', i))
         //only out nodes are modified (original nodes and in nodes stay the same)
