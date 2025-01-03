@@ -170,36 +170,36 @@ module LeftLemma
 
 
 
-    //starts with in_node -> og_node -> out_node ...and so on...
-    ghost predicate in_out_circuit_std(g: Graph, uc: seq<nat>)
-        requires validUndirectedGraph(g)
-        requires |g|>2 && |g|%3==0
-        requires in_out_graph(g)
-        // requires isUndirectedHamiltonianCircuit(g, uc)
-        ensures in_out_circuit_std(g, uc) ==> in_out_circuit(g, uc)
-    {
-        isUndirectedHamiltonianCircuit(g, uc)
-        &&
-        forall i :: 0<=i<|uc| && i%3==1 ==>
-        (
-            0<=uc[i]<|g|/3  //this: og_node
-            &&
-            uc[i-1]==uc[i]+(|g|/3)*2    //prev: *in_node
-            &&
-            uc[i+1]==uc[i]+|g|/3    //next: *out_node
-        )
-    }
+    // //starts with in_node -> og_node -> out_node ...and so on...
+    // ghost predicate in_out_circuit_std(g: Graph, uc: seq<nat>)
+    //     requires validUndirectedGraph(g)
+    //     requires |g|>2 && |g|%3==0
+    //     requires in_out_graph(g)
+    //     // requires isUndirectedHamiltonianCircuit(g, uc)
+    //     ensures in_out_circuit_std(g, uc) ==> in_out_circuit(g, uc)
+    // {
+    //     isUndirectedHamiltonianCircuit(g, uc)
+    //     &&
+    //     forall i :: 0<=i<|uc| && i%3==1 ==>
+    //     (
+    //         0<=uc[i]<|g|/3  //this: og_node
+    //         &&
+    //         uc[i-1]==uc[i]+(|g|/3)*2    //prev: *in_node
+    //         &&
+    //         uc[i+1]==uc[i]+|g|/3    //next: *out_node
+    //     )
+    // }
 
-    ghost function standarize_in_out_circuit(g: Graph, uc: seq<nat>): seq<nat>
-        requires validUndirectedGraph(g)
-        requires |g|>2 && |g|%3==0
-        requires in_out_graph(g)
-        requires in_out_circuit(g, uc)
-        // ensures in_out_circuit_std(g, standarize_in_out_circuit(g, uc))
-    {
-        if |g|/3<=uc[0]<(|g|/3)*2 then cicle_sequence(uc, 0)    //0: out -> put [0] at the end
-        else if 0<=uc[0]<|g|/3 then cicle_sequence(uc, 1)   //0: og -> put [0,1] at the end
-        else uc //0: in -> already std
-    }
+    // ghost function standarize_in_out_circuit(g: Graph, uc: seq<nat>): seq<nat>
+    //     requires validUndirectedGraph(g)
+    //     requires |g|>2 && |g|%3==0
+    //     requires in_out_graph(g)
+    //     requires in_out_circuit(g, uc)
+    //     // ensures in_out_circuit_std(g, standarize_in_out_circuit(g, uc))
+    // {
+    //     if |g|/3<=uc[0]<(|g|/3)*2 then cicle_sequence(uc, 0)    //0: out -> put [0] at the end
+    //     else if 0<=uc[0]<|g|/3 then cicle_sequence(uc, 1)   //0: og -> put [0,1] at the end
+    //     else uc //0: in -> already std
+    // }
 
 }
