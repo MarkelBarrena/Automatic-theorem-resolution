@@ -60,6 +60,7 @@ module ReductionCompletness
     }
 
     /**
+    outputs:
     0: circuit equivalent
     1-3 for verification purposes: partial correctness (no duplicates)
         1: all original nodes
