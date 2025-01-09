@@ -15,7 +15,11 @@ module LeftLemma
         requires undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
         ensures directedHamiltonianCircuit(g)
     {
+        var g' := directed_to_undirected_graph(g);
 
+        var g_rev := reverse_rFunction(g');
+        reverse_function_firsStep_lemma(g', g_rev);
+        reverse_function_secondStep_lemma(g, g_rev);
     }
 
     function rSeq(s: seq<int>): seq<int>
@@ -247,12 +251,14 @@ module LeftLemma
     //     ensures directedHamiltonianCircuit(g)
     // {}
 
-    lemma lem(g: Graph, c: seq<nat>)
+    //hamilton f(g) ==> hamilton reverse(f(g))
+    lemma reverse_function_firsStep_lemma(g: Graph, g': Graph)
         requires validUndirectedGraph(g)
         requires |g|>2 && |g|%3==0
         requires in_out_graph(g)
+        requires g' == reverse_rFunction(g)
         requires undirectedHamiltonianCircuit(g)
-        ensures directedHamiltonianCircuit(reverse_rFunction(g))
+        ensures directedHamiltonianCircuit(g')
     {
         var g' := reverse_rFunction(g);
 
@@ -261,6 +267,37 @@ module LeftLemma
 
         var dhc_eq := circuit_reverse_equivalence(g, g', uhc);
         
+    }
+
+    //hamilton reverse(f(g)) ==> hamilton g
+    lemma reverse_function_secondStep_lemma(g: Graph, g': Graph)
+        requires validGraph(g)
+        requires |g|>0
+        requires g' == reverse_rFunction(directed_to_undirected_graph(g))
+        requires directedHamiltonianCircuit(g')
+        ensures directedHamiltonianCircuit(g)
+    {
+        var g_inter := directed_to_undirected_graph(g);
+        assert g_inter == directed_to_undirected_graph(g);
+        assert g' == reverse_rFunction(g_inter);
+
+        assert |g|==|g'|;
+        assert forall f :: 0<=f<|g| ==> (forall c :: 0<=c<|g| ==> (g[f][c] <==> g'[f][c]));
+        reverse_function_secondStep_aux_lemma(g, g');
+    }
+
+    lemma reverse_function_secondStep_aux_lemma(g: Graph, g': Graph)
+        requires validGraph(g) && validGraph(g')
+        requires |g|==|g'|
+        requires forall f :: 0<=f<|g| ==> (forall c :: 0<=c<|g| ==> (g[f][c] <==> g'[f][c]))
+        requires directedHamiltonianCircuit(g')
+        ensures directedHamiltonianCircuit(g)
+    {
+        var dhc :| isDirectedHamiltonianCircuit(g', dhc);
+        assert forall i :: 0<i<|g| ==> g'[dhc[i-1]][dhc[i]] && g[dhc[i-1]][dhc[i]];
+        assert forall i :: 0<i<|g| ==> g[dhc[i-1]][dhc[i]];
+        assert g[dhc[|g|-1]][dhc[0]];
+        assert isDirectedHamiltonianCircuit(g, dhc);
     }
 
     ghost function reverse_rFunction(g: Graph): Graph
@@ -355,22 +392,25 @@ module LeftLemma
         requires g' == reverse_rFunction(g)
         ensures isDirectedHamiltonianCircuit(g', circuit_reverse_equivalence(g, g', circuit))
     {
-        circuit_reverse_equivalence_(g, g', circuit, |g'|-1)
+        assume standarized_in_out_circuit(g, circuit);  //TODO
+        circuit_reverse_equivalence_(g, g', circuit, partition_into_triplets(circuit), |g'|-1)
     }
 
-    ghost function circuit_reverse_equivalence_(g: Graph, g': Graph, c: seq<nat>, i: int): seq<nat>
+    ghost function circuit_reverse_equivalence_(g: Graph, g': Graph, c: seq<nat>, cT: seq<seq<nat>>, i: int): seq<nat>
         requires validUndirectedGraph(g)
         requires |g|>2 && |g|%3==0
         requires in_out_graph(g)
         requires isUndirectedHamiltonianCircuit(g, c)
         requires g' == reverse_rFunction(g)
-        requires -1<=i<|c|
+        requires -1<=i<|cT|
+        requires standarized_in_out_circuit(g, c)
+        requires cT == partition_into_triplets(c)
         decreases i
-        ensures |circuit_reverse_equivalence_(g, g', c, i)| == (i+1)/3
+        ensures |circuit_reverse_equivalence_(g, g', c, cT, i)| == i+1
     {
         if i==-1 then [] else
-            var c' := circuit_reverse_equivalence_(g, g', c, i-1);
-            if 0<c[i]<|g'| then c'+[c[i]] else c'
+            var c' := circuit_reverse_equivalence_(g, g', c, cT, i-1);
+            c'+[cT[i][1]]
     }
 
     lemma in_out_circuit_property_lemma(g: Graph, c: seq<nat>)
@@ -378,7 +418,8 @@ module LeftLemma
         requires |g|>2 && |g|%3==0
         requires in_out_graph(g)
         requires isUndirectedHamiltonianCircuit(g, c)
-        requires (|g|/3)*2<=c[0]<|g| && 0<=c[1]<|g|/3
+        requires oneWay(g, c)
+        requires (|g|/3)*2<=c[0]<|g|
     {
         assert |c|%3==0;
         var triplets := partition_into_triplets(c);
@@ -399,6 +440,32 @@ module LeftLemma
         decreases seqs
     {
         if |seqs| == 0 then [] else seqs[0] + boom(seqs[1..])
+    }
+
+    ghost predicate standarized_in_out_circuit(g: Graph, c: seq<nat>)
+        requires validUndirectedGraph(g)
+        requires |g|>2 && |g|%3==0
+        requires in_out_graph(g)
+        requires isUndirectedHamiltonianCircuit(g, c)
+    {
+        oneWay(g, c) && (|g|/3)*2<=c[0]<|g|
+    }
+
+    //in->og->out
+    ghost predicate oneWay(g: Graph, c: seq<nat>)
+        requires validUndirectedGraph(g)
+        requires |g|>2 && |g|%3==0
+        requires in_out_graph(g)
+        requires isUndirectedHamiltonianCircuit(g, c)
+    {
+        forall i :: 0<=i<|g|-1 ==>
+        (
+            ((|g|/3)*2<=c[i]<|g| ==> 0<=c[i+1]<|g|/3)   //if this in next og
+            &&
+            (0<=c[i+1]<|g|/3 ==> |g|/3<=c[i+1]<(|g|/3)*2)   //if this og next out
+            &&
+            (|g|/3<=c[i+1]<(|g|/3)*2 ==> (|g|/3)*2<=c[i]<|g|)   //if this out next in
+        )
     }
 
 }
