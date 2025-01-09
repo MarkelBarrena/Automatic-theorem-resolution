@@ -54,29 +54,69 @@ module LeftLemma
     {
         isUndirectedHamiltonianCircuit(g, c)
         &&
-        forall i :: 0<i<|c|-1 ==>
         (
-            (0<=c[i]<|g|/3 ==>  //case og node
-            (
-                c[i-1]==c[i]+(|g|/3)*2  //before: in
-                &&
-                c[i+1]==c[i]+|g|/3    //next: out
-            ))
-            &&
-            (|g|/3<=c[i]<(|g|/3)*2 ==>  //case out node
-            (
-                c[i-1]==c[i]-|g|/3   //before: og
-                &&
-                (|g|/3)*2<=c[i+1]<|g|   //next: in (range)
-            ))
-            &&
-            ((|g|/3)*2<=c[i]<|g| ==>  //case in node
-            (
-                |g|/3<=c[i-1]<(|g|/3)*2   //before: out (range)
-                &&
-                c[i+1]==c[i]-(|g|/3)*2    //next: og
-            ))
+            (forall i :: 0<i<|c|-1 ==> way1(g, c, i))
+            ||
+            (forall i :: 0<i<|c|-1 ==> way2(g, c, i))
         )
+    }
+
+    //circuit has structure in->og->out
+    ghost predicate way1(g: Graph, c: seq<nat>, i: int)
+        requires validUndirectedGraph(g)
+        requires |g|>2 && |g|%3==0
+        requires in_out_graph(g)
+        requires 0<i<|c|-1
+    {
+        (0<=c[i]<|g|/3 ==>  //case og node
+        (
+            c[i-1]==c[i]+(|g|/3)*2  //before: in
+            &&
+            c[i+1]==c[i]+|g|/3    //next: out
+        ))
+        &&
+        (|g|/3<=c[i]<(|g|/3)*2 ==>  //case out node
+        (
+            c[i-1]==c[i]-|g|/3   //before: og
+            &&
+            (|g|/3)*2<=c[i+1]<|g|   //next: in (range)
+        ))
+        &&
+        ((|g|/3)*2<=c[i]<|g| ==>  //case in node
+        (
+            |g|/3<=c[i-1]<(|g|/3)*2   //before: out (range)
+            &&
+            c[i+1]==c[i]-(|g|/3)*2    //next: og
+        ))
+    }
+
+    //circuit has structure out->og->in
+    ghost predicate way2(g: Graph, c: seq<nat>, i: int)
+    requires validUndirectedGraph(g)
+    requires |g|>2 && |g|%3==0
+    requires in_out_graph(g)
+    requires 0<i<|c|-1
+    {
+        (0<=c[i]<|g|/3 ==>  //case og node
+        (
+            c[i-1]==c[i]+|g|/3    //before: out
+            &&
+            c[i+1]==c[i]+(|g|/3)*2  //next: in
+        ))
+        &&
+        (|g|/3<=c[i]<(|g|/3)*2 ==>  //case out node
+        (
+            (|g|/3)*2<=c[i-1]<|g|   //before: in (range)
+            &&
+            c[i+1]==c[i]-|g|/3   //next: og
+        ))
+        &&
+        ((|g|/3)*2<=c[i]<|g| ==>  //case in node
+        (
+            c[i-1]==c[i]-(|g|/3)*2    //before: og
+            &&
+            |g|/3<=c[i+1]<(|g|/3)*2   //next: out (range)
+        ))
     }
 
     lemma in_out_circuit_lemma(g: Graph, c: seq<nat>)
@@ -86,6 +126,7 @@ module LeftLemma
         requires in_out_graph(g)
         ensures in_out_circuit(g, c)
     {
+        assert (forall i :: 0<i<|c|-1 ==> way2(g, c, i)) ==> (forall i :: 0<i<|c|-1 ==> way1(g, rSeq(c), i));
         forall i | 0<i<|c|-1
         {
             in_out_circuit_local_lemma(g, c, i);
@@ -98,41 +139,22 @@ module LeftLemma
         requires isUndirectedHamiltonianCircuit(g, c)
         requires in_out_graph(g)
         requires 0<i<|c|-1
-        ensures
-        (
-            (0<=c[i]<|g|/3 ==>  //case og node
-            (
-                c[i-1]==c[i]+(|g|/3)*2  //before: in
-                &&
-                c[i+1]==c[i]+|g|/3    //next: out
-            ))
-            &&
-            (|g|/3<=c[i]<(|g|/3)*2 ==>  //case out node
-            (
-                c[i-1]==c[i]-|g|/3   //before: og
-                &&
-                (|g|/3)*2<=c[i+1]<|g|   //next: in (range)
-            ))
-            &&
-            ((|g|/3)*2<=c[i]<|g| ==>  //case in node
-            (
-                |g|/3<=c[i-1]<(|g|/3)*2   //before: out (range)
-                &&
-                c[i+1]==c[i]-(|g|/3)*2    //next: og
-            ))
-        )
+        ensures way1(g, c, i)
     {
         if 0<=c[i]<|g|/3
         {
             in_out_circuit_1_lemma(g, c, i);
+            // assume c[i-1]==c[i]+(|g|/3)*2 && c[i+1]==c[i]+|g|/3;
         }
         if |g|/3<=c[i]<(|g|/3)*2
         {
             in_out_circuit_2_lemma(g, c, i);
+            // assume c[i-1]==c[i]-|g|/3 && (|g|/3)*2<=c[i+1]<|g|;
         }
         if (|g|/3)*2<=c[i]<|g|
         {
             in_out_circuit_3_lemma(g, c, i);
+            // assume |g|/3<=c[i-1]<(|g|/3)*2 && c[i+1]==c[i]-(|g|/3)*2;
         }
     }
 
@@ -144,7 +166,7 @@ module LeftLemma
         requires in_out_graph(g)
         requires 0<i<|c|-1
         requires 0<=c[i]<|g|/3
-        ensures c[i-1]==c[i]+(|g|/3)*2 && c[i+1]==c[i]+|g|/3
+        ensures c[i-1]==c[i]+(|g|/3)*2 || c[i+1]==c[i]+(|g|/3)*2
     {}
     
     lemma in_out_circuit_2_lemma(g: Graph, c: seq<nat>, i: int)
@@ -166,6 +188,21 @@ module LeftLemma
         requires (|g|/3)*2<=c[i]<|g|
         ensures |g|/3<=c[i-1]<(|g|/3)*2 && c[i+1]==c[i]-(|g|/3)*2 
     {}
+
+    // ghost function in_out_to_directed(g: Graph): Graph
+    //     requires validUndirectedGraph(g)
+    //     requires |g|>2 && |g|%3==0
+    //     requires isUndirectedHamiltonianCircuit(g, c)
+    //     requires in_out_graph(g)
+    // {
+    //     in_out_to_directed_(g, 0)
+    // }
+
+    // ghost function in_out_to_directed_(g: Graph): Graph
+    //     requires validUndirectedGraph(g)
+    //     requires |g|>2 && |g|%3==0
+    //     requires isUndirectedHamiltonianCircuit(g, c)
+    //     requires in_out_graph(g)
 
 
 

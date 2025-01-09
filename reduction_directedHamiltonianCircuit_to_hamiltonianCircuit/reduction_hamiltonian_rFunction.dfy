@@ -23,7 +23,9 @@ module ReductionFunction
     {
         forall f :: 0<=f< |g|/3 ==> (forall c :: 0<=c<|g| ==>
             (
-                ((c==f+|g|/3 || c==f+(|g|/3)*2) ==> g[f][c])     //out node: i+s, in node: i+s*2
+                (c==f+|g|/3 ==> g[f][c])     //out node: i+s, in node: i+s*2
+                &&
+                (c==f+(|g|/3)*2 ==> g[f][c])
                 &&
                 ((c!=f+|g|/3 && c!=f+(|g|/3)*2) ==> !g[f][c])    //rest: false (original nodes are not interconnected)
             )
