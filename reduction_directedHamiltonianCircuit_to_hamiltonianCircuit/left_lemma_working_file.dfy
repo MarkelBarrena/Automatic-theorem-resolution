@@ -391,12 +391,30 @@ module LeftLemma
         requires isUndirectedHamiltonianCircuit(g, circuit)
         requires g' == reverse_rFunction(g)
         ensures isDirectedHamiltonianCircuit(g', circuit_reverse_equivalence(g, g', circuit))
-    // {
-    //     var std_circuit := standarize_in_out_circuit(g, circuit);
-    //     var cre := circuit_reverse_equivalence_(g, g', std_circuit, triplets(std_circuit), |g'|-1);
-    //     // assume UniqueElements(cre);
-    //     cre
-    // }
+    {
+        var std_circuit := standarize_in_out_circuit(g, circuit);
+        var cTriplets := triplets(std_circuit);
+        var cre := circuit_reverse_equivalence_(g, g', std_circuit, cTriplets, |g'|-1);
+        assert cre == circuit_reverse_equivalence_(g, g', std_circuit, cTriplets, |g'|-1);
+        // triplets_property3_lemma(g, g', circuit, cTriplets);
+        // assert isDirectedHamiltonianCircuit3(g', cre) by
+        // {
+        //     assert forall j :: 0<j<|g'| ==> (g'[cre[j-1]][cre[j]] || g'[cre[j]][cre[j-1]]);
+        //     assert (g'[cre[|cre|-1]][cre[0]] || g'[cre[0]][cre[|cre|-1]]) by {triplets_property2_lemma(g, g', circuit, cTriplets); triplets_property3_lemma(g, g', circuit, cTriplets);}
+        // }
+        // assume isDirectedHamiltonianCircuit(g', cre);
+        assert |cre|==|g'|;
+        assert forall j :: 0<j< |g'| ==> g'[cre[j-1]][cre[j]];
+        assert g'[cre[|cre|-1]][cre[0]] by  //TODO
+        {
+            assert cre[|cre|-1] == cTriplets[|cTriplets|-1][1];
+            assert cre[0] == cTriplets[0][1];
+            triplets_property3_lemma(g, g', circuit, cTriplets);
+        }
+
+        assume UniqueElements(cre); //TODO
+        cre
+    }
 
     ghost function circuit_reverse_equivalence_(g: Graph, g': Graph, c: seq<nat>, cT: seq<seq<nat>>, i: int): seq<nat>
         requires validUndirectedGraph(g)
@@ -412,7 +430,7 @@ module LeftLemma
         ensures forall j :: 0<=j<= i ==> circuit_reverse_equivalence_(g, g', c, cT, i)[j] == cT[j][1]
         ensures forall j :: 0<=j<= i ==> isOgNode(g, circuit_reverse_equivalence_(g, g', c, cT, i)[j])
         ensures var c' := circuit_reverse_equivalence_(g, g', c, cT, i);
-            forall j :: 0<j<= i ==> (g'[c'[j-1]][c'[j]] || g'[c'[j]][c'[j-1]])
+            (forall j :: 0<j<= i ==> g'[c'[j-1]][c'[j]])
         // ensures UniqueElements(circuit_reverse_equivalence_(g, g', c, cT, i))
     {
         triplets_property1_lemma(g, c, cT);
@@ -483,7 +501,7 @@ module LeftLemma
         requires forall i :: 0<i<|pT| ==> g[pT[i-1][2]][pT[i][0]] //property1
         decreases |pT|
         ensures forall i :: 0<i<|pT| ==> (g[pT[i-1][2]][pT[i][0]] <==> g'[pT[i-1][1]][pT[i][1]])
-        ensures forall i :: 0<i<|pT| ==> (g'[pT[i-1][1]][pT[i][1]] || g'[pT[i][1]][pT[i-1][1]])
+        ensures forall i :: 0<i<|pT| ==> g'[pT[i-1][1]][pT[i][1]]
     {
         // assert forall f :: 0<=f<|g|/3 ==> (forall c :: 0<=c<|g|/3 ==> (g[f+|g|/3][c+(|g|/3)*2] <==> g'[f][c]));
         forall i | 0<i<|pT|
@@ -497,6 +515,38 @@ module LeftLemma
             assert g'[og0][og1] by {assert forall f :: 0<=f<|g|/3 ==> (forall c :: 0<=c<|g|/3 ==> (g[f+|g|/3][c+(|g|/3)*2] <==> g'[f][c]));}
         }
 
+    }
+
+    lemma triplets_property3_lemma(g: Graph, g': Graph, c: seq<nat>, cT: seq<seq<nat>>)
+        requires validUndirectedGraph(g)
+        requires |g|>2 && |g|%3==0
+        requires in_out_graph(g)
+        requires isUndirectedHamiltonianCircuit(g, c)
+        requires g' == reverse_rFunction(g)
+        requires standarized_in_out_circuit(g, c)
+        requires cT == triplets(c)
+        requires forall i :: 0<i<|cT| ==> (isInNode(g, cT[i][0]) && isOgNode(g, cT[i][1]) && isOutNode(g, cT[i][2])) //property1
+        requires forall i :: 0<i<|cT| ==> (cT[i][0]==cT[i][1]+(|g|/3)*2 && cT[i][2]==cT[i][1]+|g|/3) //property1
+        requires forall i :: 0<i<|cT| ==> g[cT[i-1][2]][cT[i][0]] //property1
+        requires forall i :: 0<i<|cT| ==> (g[cT[i-1][2]][cT[i][0]] <==> g'[cT[i-1][1]][cT[i][1]]) //property2
+        ensures g'[cT[|cT|-1][1]][cT[0][1]]
+    {
+        var outF, inI, ogF, ogI := cT[|cT|-1][2], cT[0][0], cT[|cT|-1][1], cT[0][1];
+        assert g[outF][inI] by {triplets_property3_auxiliar_lemma(c, cT);}
+        assert outF == ogF + |g|/3;
+        assert inI == ogI + (|g|/3)*2;
+        assert g'[ogF][ogI] by {assert forall f :: 0<=f<|g|/3 ==> (forall c :: 0<=c<|g|/3 ==> (g[f+|g|/3][c+(|g|/3)*2] <==> g'[f][c]));}
+    }
+
+    lemma triplets_property3_auxiliar_lemma(s: seq<nat>, sT: seq<seq<nat>>)
+        requires |s|>0 && |s|%3==0
+        requires sT==triplets(s)
+        ensures sT[|sT|-1][2]==s[|s|-1]
+    {
+        if |s|>3
+        {
+            triplets_property3_auxiliar_lemma(s[3..], sT[1..]);
+        }
     }
 
     ghost function triplets(s: seq<nat>): seq<seq<nat>>

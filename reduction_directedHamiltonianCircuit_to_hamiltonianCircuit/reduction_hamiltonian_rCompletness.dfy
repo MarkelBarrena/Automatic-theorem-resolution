@@ -54,7 +54,7 @@ module ReductionCompletness
         assert ce == circuit_equivalence_(g, g', circuit, |g|-1).0;   //sus muertos
         assert UniqueElements(ce) by {circuit_equivalence_no_duplicates_lemma(g, g', circuit, |g|-1);}
         aux_lemma(ce);
-        assert forall i :: 0<=i<|g'| ==> !(exists j :: 0<=j<|g'| && j!=i && ce[i]==ce[j]);  //ESTO: no hay elementos repetidos
+        assert forall i :: 0<=i<|g'| ==> !(exists j :: 0<=j<|g'| && j!=i && ce[i]==ce[j]);  //no duplicates
         ce
         // forall j :: 0<=j<|circuit'| ==> !(exists r :: 0<=r<|circuit'| && j!=r && circuit'[j]==circuit'[r])
     }
