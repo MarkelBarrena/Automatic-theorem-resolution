@@ -391,10 +391,12 @@ module LeftLemma
         requires isUndirectedHamiltonianCircuit(g, circuit)
         requires g' == reverse_rFunction(g)
         ensures isDirectedHamiltonianCircuit(g', circuit_reverse_equivalence(g, g', circuit))
-    {
-        assume standarized_in_out_circuit(g, circuit);  //TODO
-        circuit_reverse_equivalence_(g, g', circuit, partition_into_triplets(circuit), |g'|-1)
-    }
+    // {
+    //     var std_circuit := standarize_in_out_circuit(g, circuit);
+    //     var cre := circuit_reverse_equivalence_(g, g', std_circuit, triplets(std_circuit), |g'|-1);
+    //     // assume UniqueElements(cre);
+    //     cre
+    // }
 
     ghost function circuit_reverse_equivalence_(g: Graph, g': Graph, c: seq<nat>, cT: seq<seq<nat>>, i: int): seq<nat>
         requires validUndirectedGraph(g)
@@ -404,37 +406,138 @@ module LeftLemma
         requires g' == reverse_rFunction(g)
         requires -1<=i<|cT|
         requires standarized_in_out_circuit(g, c)
-        requires cT == partition_into_triplets(c)
+        requires cT == triplets(c)
         decreases i
         ensures |circuit_reverse_equivalence_(g, g', c, cT, i)| == i+1
+        ensures forall j :: 0<=j<= i ==> circuit_reverse_equivalence_(g, g', c, cT, i)[j] == cT[j][1]
+        ensures forall j :: 0<=j<= i ==> isOgNode(g, circuit_reverse_equivalence_(g, g', c, cT, i)[j])
+        ensures var c' := circuit_reverse_equivalence_(g, g', c, cT, i);
+            forall j :: 0<j<= i ==> (g'[c'[j-1]][c'[j]] || g'[c'[j]][c'[j-1]])
+        // ensures UniqueElements(circuit_reverse_equivalence_(g, g', c, cT, i))
     {
+        triplets_property1_lemma(g, c, cT);
+        triplets_property2_lemma(g, g', c, cT);
         if i==-1 then [] else
             var c' := circuit_reverse_equivalence_(g, g', c, cT, i-1);
             c'+[cT[i][1]]
     }
 
-    lemma in_out_circuit_property_lemma(g: Graph, c: seq<nat>)
+    //triplets have [in, og, out] structure
+    lemma triplets_property1_lemma(g: Graph, p: seq<nat>, pT: seq<seq<nat>>)
         requires validUndirectedGraph(g)
         requires |g|>2 && |g|%3==0
         requires in_out_graph(g)
-        requires isUndirectedHamiltonianCircuit(g, c)
-        requires oneWay(g, c)
-        requires (|g|/3)*2<=c[0]<|g|
+        requires forall i :: 0<=i<|p| ==> 0<=p[i]<|g|
+        requires UniqueElements(p)
+        requires 0<|p|<=|g|
+        requires |p|%3==0
+        requires isOneWayPath(g, p)
+        requires pT == triplets(p)
+        requires isInNode(g, p[0])
+        decreases |pT|
+        ensures forall t :: t in pT ==> (isInNode(g, t[0]) && isOgNode(g, t[1]) && isOutNode(g, t[2]))
+        ensures forall t :: t in pT ==> (t[0]==t[1]+(|g|/3)*2 && t[2]==t[1]+|g|/3)
+        ensures forall i :: 0<i<|pT| ==> g[pT[i-1][2]][pT[i][0]]
     {
-        assert |c|%3==0;
-        var triplets := partition_into_triplets(c);
-        assert forall t :: t in triplets ==> ((|g|/3)*2<=t[0]<|g| && 0<=t[1]<|g|/3 && |g|/3<=t[2]<(|g|/3*2));
+        if |pT|==1
+        {
+            assert |p|==3 && |pT[0]|==3;
+            assert isInNode(g, pT[0][0]);
+            assert isOgNode(g, pT[0][1]);
+            assert pT[0][0]==pT[0][1]+(|g|/3)*2;
+            assert pT[0][2]==pT[0][1]+|g|/3;
+        }
+        else
+        {
+            assert p == [p[0]] + p[1..];
+            assert pT == [pT[0]] + pT[1..];
+
+            assert isInNode(g, p[0]);
+            assert isOgNode(g, p[1]);
+            assert isOutNode(g, p[2]);
+            triplets_property1_lemma(g, p[3..], pT[1..]);
+
+            // assume forall t :: t in pT ==> (t[0]==t[1]+(|g|/3)*2 && t[2]==t[1]+(|g|/3));
+
+            // assert forall f :: 0<=f<|g|/3 ==> (forall c :: 0<=c<|g|/3 ==> (g[f+|g|/3][c+(|g|/3)*2] <==> reverse_rFunction(g)[f][c])); //reverse definition
+            // assert g[pT[i-1][2]][pT[i][0]] || g[pT[i][0]][pT[i-1][2]];
+            // assume forall t :: t in pT ==> (t[0]==t[1]+(|g|/3)*2 && t[2]==t[1]+(|g|/3));
+        }
     }
 
-    ghost function partition_into_triplets(s: seq<nat>): seq<seq<nat>>
+    
+    lemma triplets_property2_lemma(g: Graph, g': Graph, p: seq<nat>, pT: seq<seq<nat>>)
+        requires validUndirectedGraph(g)
+        requires |g|>2 && |g|%3==0
+        requires in_out_graph(g)
+        requires forall i :: 0<=i<|p| ==> 0<=p[i]<|g|
+        requires UniqueElements(p)
+        requires 0<|p|<=|g|
+        requires |p|%3==0
+        requires isOneWayPath(g, p)
+        requires pT == triplets(p)
+        requires isInNode(g, p[0])
+        requires g' == reverse_rFunction(g)
+        requires forall i :: 0<i<|pT| ==> (isInNode(g, pT[i][0]) && isOgNode(g, pT[i][1]) && isOutNode(g, pT[i][2])) //property1
+        requires forall i :: 0<i<|pT| ==> (pT[i][0]==pT[i][1]+(|g|/3)*2 && pT[i][2]==pT[i][1]+|g|/3) //property1
+        requires forall i :: 0<i<|pT| ==> g[pT[i-1][2]][pT[i][0]] //property1
+        decreases |pT|
+        ensures forall i :: 0<i<|pT| ==> (g[pT[i-1][2]][pT[i][0]] <==> g'[pT[i-1][1]][pT[i][1]])
+        ensures forall i :: 0<i<|pT| ==> (g'[pT[i-1][1]][pT[i][1]] || g'[pT[i][1]][pT[i-1][1]])
+    {
+        // assert forall f :: 0<=f<|g|/3 ==> (forall c :: 0<=c<|g|/3 ==> (g[f+|g|/3][c+(|g|/3)*2] <==> g'[f][c]));
+        forall i | 0<i<|pT|
+            ensures g[pT[i-1][2]][pT[i][0]] <==> g'[pT[i-1][1]][pT[i][1]]
+            ensures g'[pT[i-1][1]][pT[i][1]] || g'[pT[i][1]][pT[i-1][1]]
+        {
+            var out0, in1, og0, og1 := pT[i-1][2], pT[i][0], pT[i-1][1], pT[i][1];
+            assert g[out0][in1];
+            assert out0 == og0 + |g|/3;
+            assert in1 == og1 + (|g|/3)*2;
+            assert g'[og0][og1] by {assert forall f :: 0<=f<|g|/3 ==> (forall c :: 0<=c<|g|/3 ==> (g[f+|g|/3][c+(|g|/3)*2] <==> g'[f][c]));}
+        }
+
+    }
+
+    ghost function triplets(s: seq<nat>): seq<seq<nat>>
         requires |s|%3==0
-        ensures |partition_into_triplets(s)| == |s| / 3
-        ensures forall i :: 0 <= i < |partition_into_triplets(s)| ==> |partition_into_triplets(s)[i]| == 3
-        ensures s == boom(partition_into_triplets(s))
+        ensures |triplets(s)| == |s| / 3
+        ensures forall i :: 0 <= i < |triplets(s)| ==> |triplets(s)[i]| == 3
+        ensures s == boom(triplets(s))
     {
         if |s| == 0 then [] else
-            [s[0..3]] + partition_into_triplets(s[3..])
+            [s[0..3]] + triplets(s[3..])
     }
+
+    // ghost function triplets(g: Graph, c: seq<nat>): seq<seq<nat>>
+    //     requires validUndirectedGraph(g)
+    //     requires |g|>2 && |g|%3==0
+    //     requires in_out_graph(g)
+    //     requires isUndirectedHamiltonianCircuit(g, c)
+    //     requires standarized_in_out_circuit(g, c)
+    //     ensures |triplets(g, c)| == |c| / 3
+    //     ensures forall i :: 0 <= i < |triplets(g, c)| ==> |triplets(g, c)[i]| == 3
+    //     ensures c == boom(triplets(g, c))
+    // {
+    //     triplets_(g, c, |c|-3)
+    // }
+
+    // ghost function triplets_(g: Graph, c: seq<nat>, i: int): seq<seq<nat>>
+    //     requires validUndirectedGraph(g)
+    //     requires |g|>2 && |g|%3==0
+    //     requires in_out_graph(g)
+    //     requires isUndirectedHamiltonianCircuit(g, c)
+    //     requires standarized_in_out_circuit(g, c)
+    //     requires 0<=i<|c| && i%3==0
+    //     ensures |triplets_(g, c, i)| == (i / 3) + 1
+    //     ensures var tr := triplets_(g, c, i);
+    //         forall i :: 0 <= i < |tr| ==> |tr[i]| == 3
+    //     ensures c[0..i+3] == boom(triplets_(g, c, i))
+    // {
+    //     if i==0 then [c[0..3]] else
+    //         var cT := triplets_(g, c, i-3);
+    //         cT+[c[i..i+3]]
+    // }
 
     function boom(seqs: seq<seq<nat>>): seq<nat>
         decreases seqs
@@ -448,8 +551,37 @@ module LeftLemma
         requires in_out_graph(g)
         requires isUndirectedHamiltonianCircuit(g, c)
     {
-        oneWay(g, c) && (|g|/3)*2<=c[0]<|g|
+        oneWay(g, c) && isInNode(g, c[0])
     }
+
+    ghost predicate isOneWayPath(g: Graph, p: seq<nat>)
+        requires validUndirectedGraph(g)
+        requires |g|>2 && |g|%3==0
+        requires in_out_graph(g)
+        requires forall i :: 0<=i<|p| ==> 0<=p[i]<|g|
+        requires UniqueElements(p)
+        requires 0<|p|<=|g|
+        requires |p|%3==0
+    {
+        (forall i :: 0<i<|p| ==> (g[p[i-1]][p[i]]) || (g[p[i]][p[i-1]])) &&
+        (forall i :: 0<=i<|p|-1 ==>
+        (
+            (isInNode(g, p[i]) ==> isOgNode(g, p[i+1]))   //if this in next og
+            &&
+            (isOgNode(g, p[i]) ==> isOutNode(g, p[i+1]))   //if this og next out
+            &&
+            (isOutNode(g, p[i]) ==> isInNode(g, p[i+1]))   //if this out next in
+        ))
+    }
+
+    lemma lema(g: Graph, c: seq<nat>)   //
+        requires validUndirectedGraph(g)
+        requires |g|>2 && |g|%3==0
+        requires in_out_graph(g)
+        requires isUndirectedHamiltonianCircuit(g, c)
+        requires standarized_in_out_circuit(g, c)
+        ensures isOneWayPath(g, c)
+    {}
 
     //in->og->out
     ghost predicate oneWay(g: Graph, c: seq<nat>)
@@ -458,14 +590,61 @@ module LeftLemma
         requires in_out_graph(g)
         requires isUndirectedHamiltonianCircuit(g, c)
     {
+        (forall i :: 0<i<|c| ==> (g[c[i-1]][c[i]]) || (g[c[i]][c[i-1]])) &&
+        (forall i :: 0<=i<|g|-1 ==>
+        (
+            (isInNode(g, c[i]) ==> isOgNode(g, c[i+1]))   //if this in next og
+            &&
+            (isOgNode(g, c[i]) ==> isOutNode(g, c[i+1]))   //if this og next out
+            &&
+            (isOutNode(g, c[i]) ==> isInNode(g, c[i+1]))   //if this out next in
+        ))
+        // &&
+        // (forall i :: 0<i<|g|-1 ==> (isInNode(g, c[i]) ==> (c[i-1]==c[i]+(|g|/3)*2 && c[i+1]==c[i]+|g|/3)))
+    }
+
+    //out->og->in
+    ghost predicate otherWay(g: Graph, c: seq<nat>)
+        requires validUndirectedGraph(g)
+        requires |g|>2 && |g|%3==0
+        requires in_out_graph(g)
+        requires isUndirectedHamiltonianCircuit(g, c)
+    {
         forall i :: 0<=i<|g|-1 ==>
         (
-            ((|g|/3)*2<=c[i]<|g| ==> 0<=c[i+1]<|g|/3)   //if this in next og
+            (isOutNode(g, c[i]) ==> isOgNode(g, c[i+1]))   //if this out next og
             &&
-            (0<=c[i+1]<|g|/3 ==> |g|/3<=c[i+1]<(|g|/3)*2)   //if this og next out
+            (isOgNode(g, c[i]) ==> isInNode(g, c[i+1]))   //if this og next in
             &&
-            (|g|/3<=c[i+1]<(|g|/3)*2 ==> (|g|/3)*2<=c[i]<|g|)   //if this out next in
+            (isInNode(g, c[i]) ==> isOutNode(g, c[i+1]))   //if this in next out
         )
     }
+
+    ghost predicate isInNode(g: Graph, n: nat)
+        requires |g|>2 && |g|%3==0
+    {
+        (|g|/3)*2<=n<|g|
+    }
+
+    ghost predicate isOgNode(g: Graph, n: nat)
+        requires |g|>2 && |g|%3==0
+    {
+        0<=n<|g|/3
+    }
+
+    ghost predicate isOutNode(g: Graph, n: nat)
+        requires |g|>2 && |g|%3==0
+    {
+        |g|/3<=n<(|g|/3)*2
+    }
+
+    ghost function standarize_in_out_circuit(g: Graph, c: seq<nat>): seq<nat>
+        requires validUndirectedGraph(g)
+        requires |g|>2 && |g|%3==0
+        requires in_out_graph(g)
+        requires isUndirectedHamiltonianCircuit(g, c)
+        ensures isUndirectedHamiltonianCircuit(g, standarize_in_out_circuit(g, c))
+        ensures standarized_in_out_circuit(g, standarize_in_out_circuit(g, c))
+    //TODO
 
 }
