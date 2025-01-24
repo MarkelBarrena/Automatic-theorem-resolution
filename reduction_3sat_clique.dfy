@@ -112,7 +112,7 @@ ghost predicate isSat(V:nat, f: Formula)
 
 /// Reduction
 
-function formula_to_graph(V: nat, f: Formula): Graph
+ghost function formula_to_graph(V: nat, f: Formula): Graph
     requires valid_formula(V, f)
     ensures valid_graph(formula_to_graph(V, f))
     ensures |f| <= |formula_to_graph(V, f).V| <= 3*|f|
@@ -131,7 +131,7 @@ function formula_to_graph(V: nat, f: Formula): Graph
     else G(set_of_nodes(V, f), set_of_edges(V, f))
 }
 
-function set_of_nodes(V: nat, f: Formula): set<node>
+ghost function set_of_nodes(V: nat, f: Formula): set<node>
     requires valid_formula(V, f)
     ensures |f| <= |set_of_nodes(V, f)| <= 3*|f|
     ensures forall n: nat, l: int ::  
@@ -142,13 +142,13 @@ function set_of_nodes(V: nat, f: Formula): set<node>
 }
 
 
-function set_of_nodes_level(V: nat, f: Formula, level: nat): set<node>
+ghost function set_of_nodes_level(V: nat, f: Formula, level: nat): set<node>
     requires valid_formula(V, f)
     requires 0 <= level < |f|
+    decreases |f| - level
     ensures (|f|-level) <= |set_of_nodes_level(V, f, level)| <= 3*(|f|-level)
     ensures forall n: nat, l: int ::  
         (level <= n < |f| && l in f[n]) <==> (n, l) in set_of_nodes_level(V, f, level)
-    decreases |f| - level
 {
     var l1: set<node>:= 
         {(level, f[level][0]), (level, f[level][1]), (level, f[level][2])};
@@ -157,7 +157,7 @@ function set_of_nodes_level(V: nat, f: Formula, level: nat): set<node>
          l1 + s1
 }
 
-function set_of_edges(V: nat, f: Formula): set<edge>
+ghost function set_of_edges(V: nat, f: Formula): set<edge>
     requires valid_formula(V, f)
     ensures forall u: node, v: node :: 
         (u, v) in set_of_edges(V, f) <==>
@@ -171,7 +171,7 @@ function set_of_edges(V: nat, f: Formula): set<edge>
     else set_of_edges_level(V, f, 0)
 }
 
-function set_of_edges_level(V: nat, f: Formula, level: nat): set<edge>
+ghost function set_of_edges_level(V: nat, f: Formula, level: nat): set<edge>
     requires valid_formula(V, f)
     requires 0 <= level < |f|
 {
@@ -188,21 +188,21 @@ function set_of_edges_level(V: nat, f: Formula, level: nat): set<edge>
 /////////////////////////////////////////////////////
 
 
-lemma reduction_Lemma(V: nat, f: Formula)
+lemma reduction_lemma(V: nat, f: Formula)
     requires valid_formula(V, f)
     ensures isSat(V, f) <==> clique(formula_to_graph(V, f), |f|) 
 {    
     if isSat(V, f)
     {
-        forward_Lemma(V, f);
+        forward_lemma(V, f);
     }
     if  clique(formula_to_graph(V, f), |f|) 
     {
-        backward_Lemma(V, f);
+        backward_lemma(V, f);
     }
 }
 
-lemma forward_Lemma(V: nat, f: Formula)
+lemma forward_lemma(V: nat, f: Formula)
     requires valid_formula(V, f)
     requires isSat(V, f)
     ensures clique(formula_to_graph(V, f), |f|) 
@@ -213,8 +213,8 @@ lemma forward_Lemma(V: nat, f: Formula)
         var assig: seq<bool>:| valid_assignment(V, assig) && model(V, f, assig);
         var cl: set<node> := good_literals(V, f, assig);
         assert |cl| == |f|;
-        good_literals_level_Lemma(V, f, assig, |f|-1);
-        good_literals_edges_Lemma(V, f, assig, |f|-1);
+        good_literals_level_lemma(V, f, assig, |f|-1);
+        good_literals_edges_lemma(V, f, assig, |f|-1);
         assert forall u, v: node :: 
             u in cl && v in cl && u != v ==> (u, v) in g.E || (v, u) in g.E;
         assert clique(formula_to_graph(V, f), |f|) ;
@@ -222,7 +222,7 @@ lemma forward_Lemma(V: nat, f: Formula)
 } 
 
 
-lemma backward_Lemma(V: nat, f: Formula)
+lemma backward_lemma(V: nat, f: Formula)
     requires valid_formula(V, f)
     requires clique(formula_to_graph(V, f), |f|)
     ensures  isSat(V, f)
@@ -238,13 +238,13 @@ lemma backward_Lemma(V: nat, f: Formula)
         var nassig: seq<bool>:= assignment_from_clique (V, f, cl);
         assert forall n: nat, l: int :: (n, l) in cl ==> good_literal(V, l, f[n], nassig);
         var sn: set<nat>:= set n | 0 <= n < |f| :: n;
-        set_of_nodes_level_Lemma(V, f, 0);
+        set_of_nodes_level_lemma(V, f, 0);
         assert  levels_in_set(g.V) == sn;    
-        set_of_nodes_level_cardinal_Lemma(V, f, 0);
+        set_of_nodes_level_cardinal_lemma(V, f, 0);
         assert |levels_in_set(g.V)| == |f|;
-        clique_cardinal_Lemma(V, f, cl);
+        clique_cardinal_lemma(V, f, cl);
         assert |levels_in_set(cl)| == |f|;
-        set_Lemma(levels_in_set(cl), levels_in_set(g.V));
+        set_lemma(levels_in_set(cl), levels_in_set(g.V));
         assert levels_in_set(g.V) == levels_in_set(cl);
         assert  forall n: nat :: n in levels_in_set(cl) ==> 
         exists l: int :: l in f[n] && (n, l) in cl;
@@ -254,14 +254,14 @@ lemma backward_Lemma(V: nat, f: Formula)
 
 
 
-/// Auxiliar functions and lemmas to prove forward_Lemma
+/// Auxiliar functions and lemmas to prove forward_lemma
 
 ghost function good_literals(V: nat, f: Formula, assig: seq<bool>): set<node>
     requires valid_formula(V, f)
     requires valid_assignment(V, assig)
     requires model(V, f, assig)
-    ensures |good_literals(V, f, assig)| == |f|
     decreases |f|
+    ensures |good_literals(V, f, assig)| == |f|
 { 
      if |f| == 0 then {}
      else good_literals_level(V, f, assig, |f|-1) 
@@ -272,10 +272,10 @@ ghost function good_literals_level(V: nat, f: Formula, assig: seq<bool>, level: 
     requires valid_formula(V, f)
     requires valid_assignment(V, assig)
     requires model(V, f, assig)
+    decreases level
     ensures var gl:= good_literals_level(V, f, assig, level);
         forall u: node :: u in gl ==> 0 <= u.0 <= level
     ensures |good_literals_level(V, f, assig, level)| == level+1
-    decreases level
 { 
      var l: int :| l in f[level] && good_literal(V, l, f[level], assig);
      if (|f| == 1 || level == 0) then {(level, l)}
@@ -283,7 +283,7 @@ ghost function good_literals_level(V: nat, f: Formula, assig: seq<bool>, level: 
 }
 
 
-lemma good_literals_level_Lemma(V: nat, f: Formula, assig: seq<bool>, level: nat) 
+lemma good_literals_level_lemma(V: nat, f: Formula, assig: seq<bool>, level: nat) 
     requires 0 <= level < |f|
     requires valid_formula(V, f)
     requires valid_assignment(V, assig)
@@ -297,7 +297,7 @@ lemma good_literals_level_Lemma(V: nat, f: Formula, assig: seq<bool>, level: nat
 {}
 
 
-lemma good_literals_edges_Lemma(V: nat, f: Formula, assig: seq<bool>, level: nat)
+lemma good_literals_edges_lemma(V: nat, f: Formula, assig: seq<bool>, level: nat)
     requires 0 <= level < |f|
     requires valid_formula(V, f)
     requires valid_assignment(V, assig)
@@ -308,7 +308,7 @@ lemma good_literals_edges_Lemma(V: nat, f: Formula, assig: seq<bool>, level: nat
 {
     if |f| > 0
     {
-        good_literals_level_Lemma(V, f, assig, level);
+        good_literals_level_lemma(V, f, assig, level);
         var g: Graph:= formula_to_graph(V, f);
         var gl:=  good_literals_level(V, f, assig, level);
         if exists u: node, v: node :: u in gl && v in gl && u.0 < v.0 && (u, v) !in g.E
@@ -324,9 +324,9 @@ lemma good_literals_edges_Lemma(V: nat, f: Formula, assig: seq<bool>, level: nat
     }
 }  
 
-/// Auxiliar function and lemmas to prove backward_Lemma
+/// Auxiliar function and lemmas to prove backward_lemma
 
-lemma set_Lemma<T>(c1: set<T>, c2: set<T>)
+lemma set_lemma<T>(c1: set<T>, c2: set<T>)
     requires c1 <= c2
     ensures |c1| <= |c2|
     ensures c1 <= c2 && |c1| == |c2| ==> c2 == c1
@@ -334,7 +334,7 @@ lemma set_Lemma<T>(c1: set<T>, c2: set<T>)
     if c1 != {}
     {
         var u:T :| u in c1;
-        set_Lemma(c1-{u}, c2-{u});
+        set_lemma(c1-{u}, c2-{u});
     }
 }
 
@@ -358,7 +358,7 @@ lemma levels_in_set_lemma(s1: set<node>, s2: set<node>)
  {}
  
 
-lemma set_of_nodes_level_Lemma(V: nat, f: Formula, level: nat)
+lemma set_of_nodes_level_lemma(V: nat, f: Formula, level: nat)
     requires valid_formula(V, f)
     requires 0 <= level < |f|
     ensures forall n: nat ::
@@ -377,7 +377,7 @@ lemma set_of_nodes_level_Lemma(V: nat, f: Formula, level: nat)
 }
 
 
-lemma set_of_nodes_level_cardinal_Lemma(V: nat, f: Formula, level: nat)
+lemma set_of_nodes_level_cardinal_lemma(V: nat, f: Formula, level: nat)
     requires valid_formula(V, f)
     requires 0 <= level < |f|
     ensures |levels_in_set(set_of_nodes_level(V, f, level))| == |f| - level
@@ -397,7 +397,7 @@ lemma set_of_nodes_level_cardinal_Lemma(V: nat, f: Formula, level: nat)
 }
 
 
-lemma clique_node_Lemma(u: node, V: nat, f: Formula, cl: set<node>)
+lemma clique_node_lemma(u: node, V: nat, f: Formula, cl: set<node>)
     requires valid_formula(V, f)
     requires |cl| <= |formula_to_graph(V, f).V| 
     requires is_clique(formula_to_graph(V, f), cl)
@@ -413,7 +413,7 @@ lemma clique_node_Lemma(u: node, V: nat, f: Formula, cl: set<node>)
 }
 
 
-lemma clique_cardinal_Lemma(V: nat, f: Formula, cl: set<node>)
+lemma clique_cardinal_lemma(V: nat, f: Formula, cl: set<node>)
     requires valid_formula(V, f)
     requires |cl| <= |formula_to_graph(V, f).V| 
     requires is_clique(formula_to_graph(V, f), cl)
@@ -424,13 +424,13 @@ lemma clique_cardinal_Lemma(V: nat, f: Formula, cl: set<node>)
         var u: node :| u in cl;
         assert {u.0} + levels_in_set(cl-{u}) == levels_in_set(cl);
         assert forall u: node :: u in cl ==> u.0 in levels_in_set(cl);
-        clique_node_Lemma(u, V, f, cl);
+        clique_node_lemma(u, V, f, cl);
         assert forall v: node :: v in cl && u != v ==> u.0 != v.0;
         assert |levels_in_set(cl-{u})| == |cl-{u}|;  
     }
 }
 
-function false_assig(V: nat): seq<bool>
+ghost function false_assig(V: nat): seq<bool>
     ensures |false_assig(V)| == V+1
     ensures valid_assignment(V, false_assig(V))
 {
@@ -444,12 +444,12 @@ ghost function assignment_from_clique(V: nat, f: Formula, cl: set<node>): seq<bo
     requires valid_graph(formula_to_graph(V, f))
     requires |cl| <= |formula_to_graph(V, f).V|
     requires is_clique(formula_to_graph(V, f), cl)
+    decreases |cl|
     ensures |assignment_from_clique(V, f, cl)| == V+1
     ensures valid_assignment(V, assignment_from_clique(V, f, cl))
     ensures var nassig: seq<bool>:= assignment_from_clique(V, f, cl);
             forall n: nat, l: int :: 
                 (n, l) in cl ==> (nassig[abs(l)] <==> l > 0)
-    decreases |cl|
 {
     var nodes: set<node>:= formula_to_graph(V, f).V;
     if |f| == 0 || cl == {} then false_assig(V)

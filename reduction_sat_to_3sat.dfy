@@ -71,7 +71,7 @@ predicate model(V: nat, f: Formula, assig: seq<bool>)
 }
 
 
-lemma model_Lemma(V: nat, f: Formula, assig: seq<bool>)
+lemma model_lemma(V: nat, f: Formula, assig: seq<bool>)
     requires valid_formula(V, f)
     requires valid_assignment(V, assig)
     ensures |f| > 1 ==> (model(V, f, assig) ==> model(V, f[1..], assig))
@@ -97,7 +97,7 @@ The reduction: SAT <=p 3SAT
 
 // This function transforms a clause containing a single literal into an
 // "equivalent" clause with exactly three literals. 
-function from1To3(V: nat, cla: clause): (int, Formula)
+ghost function from1To3(V: nat, cla: clause): (int, Formula)
     requires |cla| == 1
     requires valid_clause(V, cla)
     ensures var (newV, newCNF):= from1To3(V, cla); 
@@ -125,7 +125,7 @@ function from1To3(V: nat, cla: clause): (int, Formula)
 
 // This function transforms a clause containing two literals into an
 // "equivalent" clause with exactly three literals. 
-function from2To3(V: nat, cla: clause): (int, Formula)
+ghost function from2To3(V: nat, cla: clause): (int, Formula)
     requires |cla| == 2
     requires valid_clause(V, cla)
     ensures var (newV, newCNF):= from2To3(V, cla); 
@@ -151,8 +151,7 @@ function from2To3(V: nat, cla: clause): (int, Formula)
 
 // This function transforms a clause containing a n > 3 literals into an
 // "equivalent" clause with exactly three literals. 
-// It uses the function add_two_new_literals. 
-function fromNTo3(V: nat, cla: clause): (int, Formula)
+ghost function fromNTo3(V: nat, cla: clause): (int, Formula)
     requires |cla| > 3
     requires valid_clause(V, cla)
     ensures var (newV, newCNF):= fromNTo3(V, cla); var n:= |cla|; 
@@ -173,9 +172,10 @@ function fromNTo3(V: nat, cla: clause): (int, Formula)
 }
 
 
-function add_two_new_literals(V: nat, cla: clause): (int, Formula)
+ghost function add_two_new_literals(V: nat, cla: clause): (int, Formula)
     requires |cla| > 0
     requires valid_clause(V, cla)
+    decreases |cla|
     ensures var (newV, newCNF):= add_two_new_literals(V, cla);
     (       
         valid_formula(newV, newCNF) &&
@@ -183,7 +183,6 @@ function add_two_new_literals(V: nat, cla: clause): (int, Formula)
         is3CNF(newV, newCNF) && 
         forall i: nat :: 0 <= i < |newCNF| ==> newCNF[i] == [cla[i], -(V+i), V+i+1]
     )
-    decreases |cla|
 {
     var x: int := V as int;
     if |cla| == 1 then (V+1, [[cla[0], -x,  V+1]])
@@ -195,7 +194,7 @@ function add_two_new_literals(V: nat, cla: clause): (int, Formula)
 
 /* ************************************************************ */
 //Now the transformation of any clause to 3clause.
-function clauseTo3CNF(V: nat, cla: clause): (int, Formula)
+ghost function clauseTo3CNF(V: nat, cla: clause): (int, Formula)
     requires valid_clause(V, cla)
     ensures var (newV, newCNF):= clauseTo3CNF(V, cla); 
     (
@@ -216,7 +215,7 @@ function clauseTo3CNF(V: nat, cla: clause): (int, Formula)
 
 
 /// The full reduction: the transformation of any CNF to 3CNF.
-function sat_to_3sat(V: nat, f: Formula): (int, Formula)
+ghost function sat_to_3sat(V: nat, f: Formula): (int, Formula)
     requires valid_formula(V, f)
     ensures var (newV, newF):= sat_to_3sat(V, f);
     ( 
@@ -236,7 +235,7 @@ function sat_to_3sat(V: nat, f: Formula): (int, Formula)
 //Reduction correctness
 //////////////////////////////////////////////////////
 
-lemma reduction_Lemma(V: nat, f: Formula)
+lemma reduction_lemma(V: nat, f: Formula)
     requires valid_formula(V, f)
     ensures var (newV, newF):= sat_to_3sat(V, f); 
         isSat(V, f) <==>  isSat(newV, newF) 
@@ -244,15 +243,15 @@ lemma reduction_Lemma(V: nat, f: Formula)
     var newF:= sat_to_3sat(V, f); 
     if isSat(V, f)
     {
-        forward_Lemma(V, f);
+        forward_lemma(V, f);
     }
     if isSat(newF.0, newF.1) 
     {
-        backward_Lemma(V, f);
+        backward_lemma(V, f);
     }
 }
 
-lemma forward_Lemma(V: nat, f: Formula)
+lemma forward_lemma(V: nat, f: Formula)
     requires valid_formula(V, f)
     requires isSat(V, f) 
     ensures var (newV, newF):= sat_to_3sat(V, f);  isSat(newV, newF) 
@@ -262,24 +261,24 @@ lemma forward_Lemma(V: nat, f: Formula)
 }
 
 
-lemma backward_Lemma(V: nat, f: Formula)
+lemma backward_lemma(V: nat, f: Formula)
     requires valid_formula(V, f)
     requires var (newV, newF):= sat_to_3sat(V, f); isSat(newV, newF) 
     ensures isSat(V, f) 
 {
     var (newV, newF):= sat_to_3sat(V, f); 
     var lassig: seq<bool>:| valid_assignment(newV, lassig) && model(newV, newF, lassig);
-    sat_to_3sat_Lemma(V, f, lassig); 
+    sat_to_3sat_lemma(V, f, lassig); 
 }
 
 
 
-/// Definition of the larger_good_assignment used in forward_Lemma.
+/// Definition of the larger_good_assignment used in forward_lemma.
 /////////////////////////////////////////////////////////////////////////////
 
 
 /// This function increases 'assig' in such a way that forall x: nat::  first+1 <= x last+1  ==> assig[x] == value 
-function increase_assignment(first: nat, last: nat, assig: seq<bool>, value:bool) : seq<bool>
+ghost function increase_assignment(first: nat, last: nat, assig: seq<bool>, value:bool) : seq<bool>
     requires first == |assig|-1
     requires first  <= last
     ensures var iassig:= increase_assignment(first, last, assig, value); 
@@ -325,7 +324,7 @@ ghost function larger_good_assignment_clause(V: nat, cla: clause, assig: seq<boo
     else
         var lassig_true:= increase_assignment(V, V+i-1,assig, true);
         var lassig:= increase_assignment(V+i-1, newV, lassig_true, false);
-            assert valid_assignment(newV, lassig) && assig <= lassig_true <= lassig;
+        // assert valid_assignment(newV, lassig) && assig <= lassig_true <= lassig;
         assert forall m: nat :: i <= m <= n-1 ==> 
             (-(V+m) in newCNF[m] && good_literal(V+n-1, -(V+m), newCNF[m], lassig));
         assert forall m: nat :: i <= m <= n-1 ==> model_clause(newV, newCNF[m], lassig);
@@ -337,27 +336,26 @@ ghost function larger_good_assignment_clause(V: nat, cla: clause, assig: seq<boo
 
 
 // This function constructs a larger assignment 'lassig' from 'assig' in such a way that 
-// model(V, f, assig) <==> lassig is a model for the reduction sat_ro_3sat(V, f).
-// It uses two lemmas: from1To3_Lemma and from2To3_Lemma 
-ghost function larger_good_assignment(V: nat, f: Formula,  assig: seq<bool>): seq<bool>
+// model(V, f, assig) <==> lassig is a model for the reduction sat_to_3sat(V, f).
+ghost function larger_good_assignment(V: nat, f: Formula, assig: seq<bool>): seq<bool>
     requires valid_formula(V, f)
     requires valid_assignment(V, assig)
     requires model(V, f, assig)
+    decreases |f|
     ensures var (newV, newF):= sat_to_3sat(V, f);
             var lassig:= larger_good_assignment(V, f, assig);
             assig <= lassig &&
             valid_assignment(newV, lassig) &&
             model(newV, newF, lassig) 
-    decreases |f|
 {
     if |f| == 0 then assig
     else if |f[0]| == 1 then 
         var iassig:= assig + [true, true];
-        from1To3_Lemma(V, f[0], assig);
+        from1To3_lemma(V, f[0], assig);
         larger_good_assignment(V+2, f[1..], iassig) 
     else if |f[0]| == 2 then 
         var iassig:= assig + [true];
-        from2To3_Lemma(V, f[0], assig);
+        from2To3_lemma(V, f[0], assig);
         larger_good_assignment(V+1, f[1..], iassig)
     else if |f[0]| == 3 then
         larger_good_assignment(V, f[1..], assig)
@@ -371,7 +369,7 @@ ghost function larger_good_assignment(V: nat, f: Formula,  assig: seq<bool>): se
 // This lema proves that if a 1clause has a model, then the same model, plus 
 // assigning the true value to the variables added by the transformation from1To3,
 // is also a model for the 3CNF obtained by that tranformation. 
-lemma from1To3_Lemma(V: nat, cla: clause, assig: seq<bool>)
+lemma from1To3_lemma(V: nat, cla: clause, assig: seq<bool>)
     requires |cla| == 1
     requires valid_assignment(V, assig)
     requires valid_clause(V, cla)
@@ -389,7 +387,7 @@ lemma from1To3_Lemma(V: nat, cla: clause, assig: seq<bool>)
 // This lema proves that if a 1clause has a model, then the same model, plus 
 // assigning the true value to the variable added by the transformation from2To3,
 // is also a model for the 3CNF obtained by that tranformation. 
-lemma from2To3_Lemma(V: nat, cla: clause, assig: seq<bool>)
+lemma from2To3_lemma(V: nat, cla: clause, assig: seq<bool>)
     requires |cla| == 2
     requires valid_assignment(V, assig)
     requires valid_clause(V, cla)
@@ -405,13 +403,13 @@ lemma from2To3_Lemma(V: nat, cla: clause, assig: seq<bool>)
 }
 
 
-/// Proof of the  sat_to_3sat_Lemma used in backward_Lemma.
+/// Proof of the  sat_to_3sat_lemma used in backward_lemma.
 /////////////////////////////////////////////////////////////////////////////
 
 
 // This function looks for the first false of an assignment. 
 // It is used in the next lemma. 
-function first_false(V: nat, W: nat, assig: seq<bool>): nat
+ghost function first_false(V: nat, W: nat, assig: seq<bool>): nat
     requires 1 <= V < W <= |assig|-1
     ensures first_false(V, W, assig) <= W
     ensures first_false(V, W, assig) == 0 || first_false(V, W, assig) >= V
@@ -433,13 +431,13 @@ function first_false(V: nat, W: nat, assig: seq<bool>): nat
 // This lema proves that if the 3CNF obtained by the transformation fromNTo3
 // applied to an n > 3 clause has a model 'lassig', then lassig[..V+1] is also a model for the original n > 3 clause.
 // The proof is by contradiction.
-lemma fromNTo3_Lemma(V: nat, cla: clause, lassig: seq<bool>)
+lemma fromNTo3_lemma(V: nat, cla: clause, lassig: seq<bool>)
     requires |cla| > 3
     requires valid_clause(V, cla)
     requires var (newV, newCNF):= fromNTo3(V, cla); valid_assignment(newV, lassig)
     requires var (newV, newCNF):= fromNTo3(V, cla); model(newV, newCNF, lassig)
-    ensures valid_assignment(V, lassig[..V+1]) && model_clause(V, cla, lassig[..V+1])
     decreases |cla|
+    ensures valid_assignment(V, lassig[..V+1]) && model_clause(V, cla, lassig[..V+1])
 {
     var (newV, newCNF):= fromNTo3(V, cla);
     var n:= |cla|-2;
@@ -470,60 +468,58 @@ lemma fromNTo3_Lemma(V: nat, cla: clause, lassig: seq<bool>)
 
 
 
-// The sat_to_3sat_Lemma(V, f, lassig) proves that if the 3CNF obtained by the reduction 
+// The sat_to_3sat_lemma(V, f, lassig) proves that if the 3CNF obtained by the reduction 
 // sat_to_3sat(V, f, lassig) has a model 'lassig', then the assignment lassig[..V+1] is a model for f.
-lemma sat_to_3sat_Lemma(V: nat, f: Formula, lassig: seq<bool>)
+lemma sat_to_3sat_lemma(V: nat, f: Formula, lassig: seq<bool>)
     requires valid_formula(V, f)
     requires var (newV, newF):= sat_to_3sat(V, f); 
         valid_assignment(newV, lassig) && model(newV, newF, lassig)
-    ensures valid_assignment(V, lassig[..V+1]) && model(V, f, lassig[..V+1])
     decreases |f|
+    ensures valid_assignment(V, lassig[..V+1]) && model(V, f, lassig[..V+1])
 {
     if |f| > 0
     {
-        var (newV1, newCNF):= clauseTo3CNF(V, f[0]);
-        var (newV2, newF):= sat_to_3sat(newV1, f[1..]);
-        assert sat_to_3sat(V, f) ==  (newV2, newCNF + newF);
-        assert newV2 >= newV1;
-        assert |lassig| == newV2+1;
-        model_Lemma(newV2, newF, lassig);
-    if
-    case |f[0]| == 1 =>
-        assert newV1 == V+2;
-        assert newCNF == (newCNF + newF)[..4];
-        assert lassig[..V+3] <= lassig;
-        assert model(newV1, newCNF, lassig[..V+3]);
-        sat_to_3sat_Lemma(newV1, f[1..], lassig);
-        assert model(newV2, newF, lassig);
-    case |f[0]| == 2 =>
-        assert newV1 == V+1;
-        assert newCNF == (newCNF + newF)[..2];
-        assert lassig[..V+2] <= lassig;
-        assert model(newV1, newCNF, lassig[..V+2]);
-        sat_to_3sat_Lemma(newV1, f[1..], lassig);
-        assert model(newV2, newF, lassig);
-    case |f[0]| == 3 =>
-        assert newV1 == V;
-        assert newCNF == (newCNF + newF)[..1] == [f[0]];
-        assert lassig[..V+1] <= lassig;
-        assert model(V, newCNF, lassig[..V+1]);
-        assert valid_assignment(V, lassig[..V+1]);
-        sat_to_3sat_Lemma(V, f[1..], lassig);
-        assert model(newV2, newF, lassig);
-    case |f[0]| > 3 =>
-        assert |f[0]| > 3;
-        assert (newV1, newCNF) ==  clauseTo3CNF(V, f[0]) == fromNTo3(V, f[0]);
-        assert newV1 == V+|f[0]|-3;
-        assert newCNF == (newCNF + newF)[..|f[0]|-2];
-        assert  lassig[.. V+|f[0]|-2] <= lassig;
-        assert model(newV1, newCNF, lassig[..V+|f[0]|-2]);
-        fromNTo3_Lemma(V, f[0], lassig[.. V + |f[0]|-2]);
-        assert model_clause(V, f[0],  lassig[.. V + |f[0]|-2][..V+1]);
-        assert lassig[..V + |f[0]|-2][..V+1] ==  lassig[..V+1];
-        assert model_clause(V, f[0], lassig[..V+1]);
-        sat_to_3sat_Lemma(newV1, f[1..], lassig);
-        assert model(newV2, newF, lassig);
+            var (newV1, newCNF):= clauseTo3CNF(V, f[0]);
+            var (newV2, newF):= sat_to_3sat(newV1, f[1..]);
+            assert sat_to_3sat(V, f) ==  (newV2, newCNF + newF);
+            assert newV2 >= newV1;
+            assert |lassig| == newV2+1;
+            model_lemma(newV2, newF, lassig);
+        if
+        case |f[0]| == 1 =>
+            assert newV1 == V+2;
+            assert newCNF == (newCNF + newF)[..4];
+            assert lassig[..V+3] <= lassig;
+            assert model(newV1, newCNF, lassig[..V+3]);
+            // sat_to_3sat_lemma(newV1, f[1..], lassig);
+            assert model(newV2, newF, lassig);
+        case |f[0]| == 2 =>
+            assert newV1 == V+1;
+            assert newCNF == (newCNF + newF)[..2];
+            assert lassig[..V+2] <= lassig;
+            assert model(newV1, newCNF, lassig[..V+2]);
+            // sat_to_3sat_lemma(newV1, f[1..], lassig);
+            assert model(newV2, newF, lassig);
+        case |f[0]| == 3 =>
+            assert newV1 == V;
+            assert newCNF == (newCNF + newF)[..1] == [f[0]];
+            assert lassig[..V+1] <= lassig;
+            assert model(V, newCNF, lassig[..V+1]);
+            assert valid_assignment(V, lassig[..V+1]);
+            // sat_to_3sat_lemma(V, f[1..], lassig);
+            assert model(newV2, newF, lassig);
+        case |f[0]| > 3 =>
+            assert |f[0]| > 3;
+            assert (newV1, newCNF) ==  clauseTo3CNF(V, f[0]) == fromNTo3(V, f[0]);
+            assert newV1 == V+|f[0]|-3;
+            assert newCNF == (newCNF + newF)[..|f[0]|-2];
+            assert  lassig[.. V+|f[0]|-2] <= lassig;
+            assert model(newV1, newCNF, lassig[..V+|f[0]|-2]);
+            fromNTo3_lemma(V, f[0], lassig[.. V + |f[0]|-2]);
+            assert model_clause(V, f[0],  lassig[.. V + |f[0]|-2][..V+1]);
+            assert lassig[..V + |f[0]|-2][..V+1] ==  lassig[..V+1];
+            assert model_clause(V, f[0], lassig[..V+1]);
+            // sat_to_3sat_lemma(newV1, f[1..], lassig);
+            assert model(newV2, newF, lassig);
     }
 }
-
-//310 code lines

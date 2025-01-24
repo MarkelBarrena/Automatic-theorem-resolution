@@ -22,34 +22,6 @@ module LeftLemma
         reverse_function_secondStep_lemma(g, g_rev);
     }
 
-    function rSeq(s: seq<int>): seq<int>
-    {
-        if |s| == 0 then
-            []
-        else
-            rSeq(s[1..]) + [s[0]]
-    }
-
-    lemma circuit_reverse_property_lemma(g: Graph, c: seq<nat>)
-        requires validUndirectedGraph(g)
-        requires |g|>2
-        requires isUndirectedHamiltonianCircuit(g, c)
-        ensures isUndirectedHamiltonianCircuit(g, c)
-    {}
-
-    ghost function cicle_sequence(s: seq<nat>, i: int): seq<nat>
-        requires 0<=i<|s|
-    {
-        s[i..|s|] + s[0..i]
-    }
-
-    lemma circuit_circular_property_lemma(g: Graph, c: seq<nat>)
-        requires validUndirectedGraph(g)
-        requires |g|>2
-        requires isUndirectedHamiltonianCircuit(g, c)
-        ensures forall i :: 0<=i<|c| ==> isUndirectedHamiltonianCircuit(g, cicle_sequence(c, i))
-    {}
-
     //hamilton f(g) ==> hamilton reverse(f(g))
     lemma reverse_function_firsStep_lemma(g: Graph, g': Graph)
         requires validUndirectedGraph(g)
@@ -463,14 +435,15 @@ module LeftLemma
         requires in_out_graph(g)
         requires isUndirectedHamiltonianCircuit(g, c)
     {
-        forall i :: 0<=i<|g|-1 ==>
+        (forall i :: 0<i<|c| ==> (g[c[i-1]][c[i]]) || (g[c[i]][c[i-1]])) &&
+        (forall i :: 0<=i<|g|-1 ==>
         (
             (isOutNode(g, c[i]) ==> isOgNode(g, c[i+1]))   //if this out next og
             &&
             (isOgNode(g, c[i]) ==> isInNode(g, c[i+1]))   //if this og next in
             &&
             (isInNode(g, c[i]) ==> isOutNode(g, c[i+1]))   //if this in next out
-        )
+        ))
     }
 
     ghost predicate isInNode(g: Graph, n: nat)
