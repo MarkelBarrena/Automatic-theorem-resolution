@@ -16,17 +16,17 @@ module ReductionCompletness
     {
         if directedHamiltonianCircuit(g)
         {
-            reduction_lemma_right(g);
+            reduction_forward_lemma(g);
         }
         if undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
         {
-            reduction_lemma_left(g);
+            reduction_backward_lemma(g);
         }
     }
 
     // Reduction to the right: directedHamiltonian(g) ==> undirectedHamiltonian(f(g))
 
-    lemma reduction_lemma_right(g: Graph)
+    lemma reduction_forward_lemma(g: Graph)
         requires validGraph(g)
         requires directedHamiltonianCircuit(g)
         ensures undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
@@ -158,7 +158,7 @@ module ReductionCompletness
 
     // Reduction to the left: undirectedHamiltonian(f(g)) ==> directedHamiltonian(g)
 
-    lemma reduction_lemma_left(g: Graph) //TODO
+    lemma reduction_backward_lemma(g: Graph) //TODO
         requires validGraph(g)
         requires undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
         ensures directedHamiltonianCircuit(g)

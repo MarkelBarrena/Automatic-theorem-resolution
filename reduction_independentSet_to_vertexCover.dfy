@@ -48,25 +48,38 @@ The reduction: independentSet <=p vertexCover
  */
 
 // Reduction correctness
-lemma independentSet_to_vertexCover_Lemma(g: Graph, k: nat)
+lemma reduction_lemma(g: Graph, k: nat)
     requires validGraph(g)
-    requires |g.V| >= k //
+    requires |g.V| >= k
     ensures independentSet(g, k) <==> vertexCover(g, |g.V|-k)
 {
     if independentSet(g, k)
     {
-        var ins: set<nat> :| is_independentSet(g, k, ins);
-        independentSet_to_vertexCover_sub_Lemma(g, k, ins);
+        forward_lemma(g, k);
     }
     if vertexCover(g, |g.V|-k)
     {
-        var ins: set<nat> :| is_vertexCover(g, |g.V|-k, g.V-ins);
+        backward_lemma(g, k);
     }
 }
 
-lemma independentSet_to_vertexCover_sub_Lemma(g: Graph, k: nat, ins: set<nat>)
+lemma forward_lemma(g: Graph, k: nat)
     requires validGraph(g)
-    requires |g.V| >= k //sino dafny se queja en la llamada del ensures
-    requires ins <= g.V //hasta qué punto es trampa?
-    ensures is_independentSet(g, k, ins) <==> is_vertexCover(g, |g.V|-k, g.V-ins)
-{}
+    requires |g.V| >= k
+    requires independentSet(g, k)
+    ensures vertexCover(g, |g.V|-k)
+{
+    var ins: set<nat> :| is_independentSet(g, k, ins);
+    assert is_vertexCover(g, |g.V|-k, g.V-ins);
+}
+
+lemma backward_lemma(g: Graph, k: nat)
+    requires validGraph(g)
+    requires |g.V| >= k
+    requires vertexCover(g, |g.V|-k)
+    ensures independentSet(g, k)
+{
+    var vc: set<nat> :| is_vertexCover(g, |g.V|-k, vc);
+    var ins: set<nat> := g.V - vc;
+    assert is_vertexCover(g, |g.V|-k, g.V-ins) ==> is_independentSet(g, k, ins);
+}

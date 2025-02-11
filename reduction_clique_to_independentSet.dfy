@@ -69,27 +69,27 @@ function inverse_graph(g: Graph): Graph
 
 
 //Reduction correctness
-lemma reduction_Lemma(g: Graph, k: nat)
+lemma reduction_lemma(g: Graph, k: nat)
     requires valid_graph(g)
     ensures clique(g, k) <==> independentSet(inverse_graph(g), k)
 {
     if clique(g, k)
     {
-        reduction_Lemma_right(g, k);
+        forward_lemma(g, k);
     }
     if independentSet(inverse_graph(g), k)
     {
-        reduction_Lemma_left(g, k);
+        backward_lemma(g, k);
     }
 }
 
-lemma reduction_Lemma_right(g: Graph, k: nat)
+lemma forward_lemma(g: Graph, k: nat)
     requires valid_graph(g)
     requires clique(g, k)
     ensures independentSet(inverse_graph(g), k)
 {}
 
-lemma reduction_Lemma_left(g: Graph, k: nat)
+lemma backward_lemma(g: Graph, k: nat)
     requires valid_graph(g)
     requires independentSet(inverse_graph(g), k)
     ensures clique(g, k)
