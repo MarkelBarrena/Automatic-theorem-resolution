@@ -2,13 +2,13 @@ include "reduction_hamiltonian_definitions.dfy"
 include "reduction_hamiltonian_rFunction.dfy"
 include "permutation_property.dfy"
 
-module ReductionCompletness
+module ReductionCorrectness
 {
     import opened Definitions
     import opened ReductionFunction
     import opened PermutationProperty
 
-    ///// REDUCTION COMPLETNESS /////
+    ///// REDUCTION CORRECTNESS /////
 
     lemma reduction_lemma(g: Graph)
         requires validGraph(g)
@@ -24,7 +24,7 @@ module ReductionCompletness
         }
     }
 
-    // Reduction to the right: directedHamiltonian(g) ==> undirectedHamiltonian(f(g))
+    // Forward reduction: directedHamiltonian(g) ==> undirectedHamiltonian(f(g))
 
     lemma reduction_forward_lemma(g: Graph)
         requires validGraph(g)
@@ -42,6 +42,14 @@ module ReductionCompletness
         
     }
 
+    // Backward reduction: undirectedHamiltonian(f(g)) ==> directedHamiltonian(g)
+
+    lemma reduction_backward_lemma(g: Graph) //TODO
+        requires validGraph(g)
+        requires undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
+        ensures directedHamiltonianCircuit(g)
+    {} //see left_lemma_working_file.dfy
+
     //returns the directed circuit's undirected equivalence
     ghost function circuit_equivalence(g: Graph, g': Graph, circuit: seq<nat>): seq<nat>
         requires validGraph(g)
@@ -51,12 +59,11 @@ module ReductionCompletness
         ensures isUndirectedHamiltonianCircuit(g', circuit_equivalence(g, g', circuit))
     {
         var ce := circuit_equivalence_(g, g', circuit, |g|-1).0;
-        assert ce == circuit_equivalence_(g, g', circuit, |g|-1).0;   //sus muertos
+        assert ce == circuit_equivalence_(g, g', circuit, |g|-1).0;   //trivial but necessary
         assert UniqueElements(ce) by {circuit_equivalence_no_duplicates_lemma(g, g', circuit, |g|-1);}
         aux_lemma(ce);
         assert forall i :: 0<=i<|g'| ==> !(exists j :: 0<=j<|g'| && j!=i && ce[i]==ce[j]);  //no duplicates
         ce
-        // forall j :: 0<=j<|circuit'| ==> !(exists r :: 0<=r<|circuit'| && j!=r && circuit'[j]==circuit'[r])
     }
 
     /**
@@ -155,13 +162,5 @@ module ReductionCompletness
     {
         forall i :: 0<=i<|s| ==> n1<=s[i]<n2
     }
-
-    // Reduction to the left: undirectedHamiltonian(f(g)) ==> directedHamiltonian(g)
-
-    lemma reduction_backward_lemma(g: Graph) //TODO
-        requires validGraph(g)
-        requires undirectedHamiltonianCircuit(directed_to_undirected_graph(g))
-        ensures directedHamiltonianCircuit(g)
-    {} //see left_lemma_working_file.dfy
 
 }

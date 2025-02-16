@@ -1,8 +1,16 @@
+
+/************************
+INSTANCE TYPE DECLARATION
+************************/
 type clause = seq<int>
 type Formula = seq<clause>
 // Note: Each formula is in CNF.
 // From now on V denotes a number of variables. Forall variable x: 1 <= x <= V.
 // We assume that any CNF cannot contain empty clauses. 
+
+/*************************
+TYPE DEFINITION PREDICATES
+*************************/
 
 // Auxiliary function that calculates the absolute value of an integer.
 function abs(i: int): int
@@ -42,6 +50,10 @@ predicate is3CNF(V: nat, f: Formula)
 }
 
 
+/******************
+PROBLEM DEFINITIONS
+*******************/
+
 // This predicate guarantees that a literal in a clause makes the clause true.
 predicate good_literal(V: nat, l: int, cla: clause, assig: seq<bool>)
     requires valid_clause(V, cla)
@@ -50,7 +62,6 @@ predicate good_literal(V: nat, l: int, cla: clause, assig: seq<bool>)
 {
     l in cla && (assig[abs(l)] <==> l > 0)
 }
-
 
 
 // This predicate guarantees that an assignment is a model for a clause.
@@ -88,14 +99,13 @@ ghost predicate isSat(V:nat, f: Formula)
 
 
 
-/**
-The reduction: SAT <=p 3SAT
-**/
+/***************
+REDUCTION: INDEPENDENT-SET <=p VERTEX-COVER
+****************/
 
-/* ************************************************************ */
-//First: reduction of 1clause to 3clause
+//// REDUCTION FUNCTION ////
 
-// This function transforms a clause containing a single literal into an
+// Transforms a clause containing a single literal into an
 // "equivalent" clause with exactly three literals. 
 ghost function from1To3(V: nat, cla: clause): (int, Formula)
     requires |cla| == 1
@@ -120,9 +130,6 @@ ghost function from1To3(V: nat, cla: clause): (int, Formula)
 }
 
 
-/* ************************************************************ */
-//Second: reduction of 2clause to 3clause
-
 // This function transforms a clause containing two literals into an
 // "equivalent" clause with exactly three literals. 
 ghost function from2To3(V: nat, cla: clause): (int, Formula)
@@ -143,11 +150,6 @@ ghost function from2To3(V: nat, cla: clause): (int, Formula)
         )
 }
 
-
-
-/* ************************************************************ */
-//Third: transformation of nclause with n > 3 to 3clause.
-// The transformation is more complicated.
 
 // This function transforms a clause containing a n > 3 literals into an
 // "equivalent" clause with exactly three literals. 
@@ -192,8 +194,7 @@ ghost function add_two_new_literals(V: nat, cla: clause): (int, Formula)
 }
 
 
-/* ************************************************************ */
-//Now the transformation of any clause to 3clause.
+// Generalization of previous cases.
 ghost function clauseTo3CNF(V: nat, cla: clause): (int, Formula)
     requires valid_clause(V, cla)
     ensures var (newV, newCNF):= clauseTo3CNF(V, cla); 
@@ -214,7 +215,7 @@ ghost function clauseTo3CNF(V: nat, cla: clause): (int, Formula)
 }
 
 
-/// The full reduction: the transformation of any CNF to 3CNF.
+// Final function.
 ghost function sat_to_3sat(V: nat, f: Formula): (int, Formula)
     requires valid_formula(V, f)
     ensures var (newV, newF):= sat_to_3sat(V, f);
@@ -232,8 +233,7 @@ ghost function sat_to_3sat(V: nat, f: Formula): (int, Formula)
 }
 
 
-//Reduction correctness
-//////////////////////////////////////////////////////
+//// REDUCTION CORRECTNESS ////
 
 lemma reduction_lemma(V: nat, f: Formula)
     requires valid_formula(V, f)
@@ -251,6 +251,8 @@ lemma reduction_lemma(V: nat, f: Formula)
     }
 }
 
+// Reduction forward: isSat(F) ==> isSat(f(F))
+
 lemma forward_lemma(V: nat, f: Formula)
     requires valid_formula(V, f)
     requires isSat(V, f) 
@@ -260,6 +262,7 @@ lemma forward_lemma(V: nat, f: Formula)
     var  lassig: seq<bool>:= larger_good_assignment(V, f, assig);
 }
 
+// Reduction backward: isSat(f(F)) ==> isSat(F)
 
 lemma backward_lemma(V: nat, f: Formula)
     requires valid_formula(V, f)
@@ -272,10 +275,7 @@ lemma backward_lemma(V: nat, f: Formula)
 }
 
 
-
-/// Definition of the larger_good_assignment used in forward_lemma.
-/////////////////////////////////////////////////////////////////////////////
-
+// Auxiliarys for forward_lemma
 
 /// This function increases 'assig' in such a way that forall x: nat::  first+1 <= x last+1  ==> assig[x] == value 
 ghost function increase_assignment(first: nat, last: nat, assig: seq<bool>, value:bool) : seq<bool>
@@ -403,9 +403,7 @@ lemma from2To3_lemma(V: nat, cla: clause, assig: seq<bool>)
 }
 
 
-/// Proof of the  sat_to_3sat_lemma used in backward_lemma.
-/////////////////////////////////////////////////////////////////////////////
-
+// Auxiliary for backward_lemma.
 
 // This function looks for the first false of an assignment. 
 // It is used in the next lemma. 

@@ -5,7 +5,7 @@ module ReductionFunction
     import opened Definitions
 
     /***************
-    REDUCTION: DIRECTED HAMILTONIAN <p UNDIRECTED HAMILTONIAN
+    REDUCTION: DIRECTED HAMILTONIAN <=p UNDIRECTED HAMILTONIAN
     ****************/
 
     /////// AUXILIAR PREDICATES //////
@@ -183,12 +183,13 @@ module ReductionFunction
     }
 
     /**
-    columna i del nodo n en g:
-        si [n][i] true : hay una arista de n a i -> [n_out][i_in] := true : [n+s][i+s*2]:=true
+    column i of node n in g:
+        if [n][i] : there is an edge from n to i -> [n_out][i_in] := true : [n+s][i+s*2]:=true
         Nota:
-            es importante el orden [n_out][n_in] porque los nodos out tienen un valor menor que los nodos in
-            (n_out: n+s y n_in n+s*2 siendo n su nodo central) por lo que si fuese a la inversa no se conservaría
-            la propiedad de matriz triangular superior utilizada, en este caso, para categorizar grafos no dirigidos.
+            it's important the order [n_out][n_in] because n_out nodes are smaller than n_in nodes
+            (n_out: n+s and n_in n+s*2, being n their central node) if it were the other way
+            the used triangular superior property wouldn't be preserved, and, in our categorization, this wouldn't be
+            a valid undirected graph.
     */
     ghost function direction_equivalence_node_(g: Graph, g': Graph, n: int, i: int): Graph
         requires |g|>0

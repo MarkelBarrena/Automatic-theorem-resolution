@@ -1,14 +1,14 @@
 include "reduction_hamiltonian_definitions.dfy"
 include "reduction_hamiltonian_rFunction.dfy"
 include "permutation_property.dfy"
-include "reduction_hamiltonian_rCompletness.dfy"
+include "reduction_hamiltonian_rCorrectness.dfy"
 
 module LeftLemma
 {
     import opened Definitions
     import opened ReductionFunction
     import opened PermutationProperty
-    import opened ReductionCompletness
+    import opened ReductionCorrectness
 
     lemma reduction_lemma_left(g: Graph)
         requires validGraph(g)
@@ -424,8 +424,6 @@ module LeftLemma
             &&
             (isOutNode(g, c[i]) ==> isInNode(g, c[i+1]))   //if this out next in
         ))
-        // &&
-        // (forall i :: 0<i<|g|-1 ==> (isInNode(g, c[i]) ==> (c[i-1]==c[i]+(|g|/3)*2 && c[i+1]==c[i]+|g|/3)))
     }
 
     //out->og->in

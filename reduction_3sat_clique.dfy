@@ -1,8 +1,23 @@
+
+/************************
+INSTANCE TYPE DECLARATION
+************************/
+
 type node = (nat, int)
 type edge = (node, node)
 datatype Graph = G(V: set<node>, E: set<edge>)
 // The nodes of the graph are pairs of natural numbers. The first number identifies
 // a clause of the CNF and the second one indentifies a literal of the clause
+
+type clause = seq<int>
+type Formula = seq<clause>
+// Note: Each formula is in CNF.
+// From now on V denotes a number of variables. Forall variable x: 1 <= x <= V.
+// We assume that any CNF cannot contain empty clauses. 
+
+/*************************
+TYPE DEFINITION PREDICATES
+*************************/
 
 predicate well_ordered_pair(u: node, v: node)
 {
@@ -17,6 +32,18 @@ ghost predicate valid_graph(g: Graph)
 }
 
 
+/******************
+PROBLEM DEFINITIONS
+*******************/
+
+//// CLIQUE ////
+ghost predicate clique(g: Graph, k: nat)
+    requires valid_graph(g)
+    requires k <= |g.V|
+{
+    exists cl: set<node> :: |cl| == k && is_clique(g, cl)
+}
+
 ghost predicate is_clique(g: Graph, cl: set<node>)
     requires valid_graph(g)
     requires |cl| <= |g.V|
@@ -26,22 +53,7 @@ ghost predicate is_clique(g: Graph, cl: set<node>)
         u in cl && v in cl && well_ordered_pair(u, v) ==> (u, v) in g.E 
 }
 
-
-
-// This predicate is the decision problem known as the Clique problem.
-ghost predicate clique(g: Graph, k: nat)
-    requires valid_graph(g)
-    requires k <= |g.V|
-{
-    exists cl: set<node> :: |cl| == k && is_clique(g, cl)
-}
-
-
-type clause = seq<int>
-type Formula = seq<clause>
-// Note: Each formula is in CNF.
-// From now on V denotes a number of variables. Forall variable x: 1 <= x <= V.
-// We assume that any CNF cannot contain empty clauses. 
+//// 3SAT ////
 
 // Auxiliary function that calculates the absolute value of an integer.
 function abs(i: int): int
@@ -110,7 +122,11 @@ ghost predicate isSat(V:nat, f: Formula)
 }
 
 
-/// Reduction
+/***************
+REDUCTION: 3SAT <=p CLIQUE
+****************/
+
+///// REDUCTION FUNCTION /////
 
 ghost function formula_to_graph(V: nat, f: Formula): Graph
     requires valid_formula(V, f)
@@ -184,8 +200,7 @@ ghost function set_of_edges_level(V: nat, f: Formula, level: nat): set<edge>
 }  
 
 
-// Reduction correctness
-/////////////////////////////////////////////////////
+///// REDUCTION CORRECTNESS /////
 
 
 lemma reduction_lemma(V: nat, f: Formula)
@@ -201,6 +216,8 @@ lemma reduction_lemma(V: nat, f: Formula)
         backward_lemma(V, f);
     }
 }
+
+//Forward reduction: isSat(V, F) ==> clique(f(V, F))
 
 lemma forward_lemma(V: nat, f: Formula)
     requires valid_formula(V, f)
@@ -221,6 +238,7 @@ lemma forward_lemma(V: nat, f: Formula)
     }
 } 
 
+//Backward reduction: clique(f(V, F)) ==> isSat(V, F)
 
 lemma backward_lemma(V: nat, f: Formula)
     requires valid_formula(V, f)
@@ -460,5 +478,3 @@ ghost function assignment_from_clique(V: nat, f: Formula, cl: set<node>): seq<bo
         if u.1 > 0 then nassig[..abs(u.1)] + [true] +  nassig[abs(u.1)+1..]
         else nassig[..abs(u.1)] + [false] +  nassig[abs(u.1)+1..]    
 }
-
-// 280 code lines

@@ -1,7 +1,14 @@
+/************************
+INSTANCE TYPE DECLARATION
+************************/
+
 datatype Graph = G(V: nat, E: set<(nat, nat)>)
 // Note: The nodes of the graph are natural numbers from 1 to |V|
 // The edges (u, v) in E always satisfy that u < v
 
+/*************************
+TYPE DEFINITION PREDICATES
+*************************/
 
 // This predicate guarantees that the nodes of the edges are nodes of the graph
 ghost predicate valid_graph(g: Graph)
@@ -9,8 +16,11 @@ ghost predicate valid_graph(g: Graph)
     forall u, v :: (u, v) in g.E ==> 0 < u < v <= g.V
 }
 
+/******************
+PROBLEM DEFINITIONS
+*******************/
 
-// This predicate is the decision problem known as the Clique problem
+//// CLIQUE ////
 ghost predicate clique(g: Graph, k: nat)
     requires valid_graph(g)
 {
@@ -21,7 +31,7 @@ ghost predicate clique(g: Graph, k: nat)
 }
 
 
-// This predicate is the decision problem known as the Independent-Set problem
+//// INDEPENDENT-SET ////
 ghost predicate independentSet(g: Graph, k: nat)
     requires valid_graph(g)
 {
@@ -32,12 +42,12 @@ ghost predicate independentSet(g: Graph, k: nat)
 }
 
 
-/**
-The reduction: Clique <=p Independent-Set
-**/
+/***************
+REDUCTION: CLIQUE <=p INDEPENDENT-SET
+****************/
 
 
-// Reduction function
+//// REDUCTION FUNCTION ////
 
 // This function calculates the complementary set of edges
 function complementary_edges(g: Graph): set<(nat, nat)>
@@ -68,7 +78,8 @@ function inverse_graph(g: Graph): Graph
 }
 
 
-//Reduction correctness
+//// REDUCTION CORRECTNESS ////
+
 lemma reduction_lemma(g: Graph, k: nat)
     requires valid_graph(g)
     ensures clique(g, k) <==> independentSet(inverse_graph(g), k)

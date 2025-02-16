@@ -1,5 +1,13 @@
+
+/************************
+INSTANCE TYPE DECLARATION
+************************/
 datatype Graph = G(V: set<nat>, E: set<(nat, nat)>)
 // The nodes of the graph are natural numbers
+
+/*************************
+TYPE DEFINITION PREDICATES
+*************************/
 
 // The nodes of the edge are nodes of the graph and every edge (u, v) always satisfy u<v
 ghost predicate validGraph(g: Graph)
@@ -7,7 +15,11 @@ ghost predicate validGraph(g: Graph)
     forall e :: e in g.E ==> (e.0 in g.V && e.1 in g.V) && e.0 < e.1
 }
 
-// This predicate is the decision problem known as the Independent-Set problem
+/******************
+PROBLEM DEFINITIONS
+*******************/
+
+//// INDEPENDENT-SET ////
 ghost predicate independentSet(g: Graph, k: nat)
     requires validGraph(g)
 {
@@ -17,7 +29,7 @@ ghost predicate independentSet(g: Graph, k: nat)
     )
 }
 
-// This predicate is true if 'ins' is an independent set of size 'k' in the graph 'g'
+// True if 'ins' is an independent set of size 'k' in the graph 'g'
 ghost predicate is_independentSet(g: Graph, k: nat, ins: set<nat>)
     requires validGraph(g)
     ensures is_independentSet(g, k, ins) ==> independentSet(g, k)
@@ -25,7 +37,7 @@ ghost predicate is_independentSet(g: Graph, k: nat, ins: set<nat>)
     |ins| == k && ins<=g.V && (forall u, v :: u in g.V && v in g.V && u!=v ==> u in ins && v in ins ==> (u, v) !in g.E)
 }
 
-// This predicate is the decision problem known as the Vertex-Cover problem
+//// VERTEX-COVER ////
 ghost predicate vertexCover(g: Graph, k: nat)
     requires validGraph(g)
 {
@@ -35,7 +47,7 @@ ghost predicate vertexCover(g: Graph, k: nat)
     )
 }
 
-// This predicate is true if 'vc' is a vertex cover of size 'k' in the graph 'g'
+// True if 'vc' is a vertex cover of size 'k' in the graph 'g'
 ghost predicate is_vertexCover(g: Graph, k: nat, vc: set<nat>)
     requires validGraph(g)
     ensures is_vertexCover(g, k, vc) ==> vertexCover(g, k)
@@ -43,11 +55,13 @@ ghost predicate is_vertexCover(g: Graph, k: nat, vc: set<nat>)
     |vc| == k && vc<=g.V && (forall e :: e in g.E ==> (e.0 in vc || e.1 in vc))
 }
 
-/**
-The reduction: independentSet <=p vertexCover
- */
+/***************
+REDUCTION: INDEPENDENT-SET <=p VERTEX-COVER
+****************/
 
-// Reduction correctness
+//(There is no explicit reduction funcion).
+
+//// REDUCTION CORRECTNESS ////
 lemma reduction_lemma(g: Graph, k: nat)
     requires validGraph(g)
     requires |g.V| >= k
@@ -63,6 +77,7 @@ lemma reduction_lemma(g: Graph, k: nat)
     }
 }
 
+//Forward reduction: IS(g) ==> VC(f(g))
 lemma forward_lemma(g: Graph, k: nat)
     requires validGraph(g)
     requires |g.V| >= k
@@ -73,6 +88,7 @@ lemma forward_lemma(g: Graph, k: nat)
     assert is_vertexCover(g, |g.V|-k, g.V-ins);
 }
 
+//Backward reduction: VC(f(g)) ==> IS(g)
 lemma backward_lemma(g: Graph, k: nat)
     requires validGraph(g)
     requires |g.V| >= k

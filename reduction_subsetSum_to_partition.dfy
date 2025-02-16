@@ -1,3 +1,7 @@
+/******************
+PROBLEM DEFINITIONS
+*******************/
+
 // This function calculates the sum of the elements of a sequence
 function sum_seq(s:seq<int>): int
 	ensures |s| == 1 ==> sum_seq(s) == s[0]  			
@@ -19,32 +23,34 @@ ghost function seq_from_multiset(ms:multiset<int>): seq<int>
 }
 
 
-// This problem is known as SubsetSum (it is NP-complete)
+//// SUBSET-SUM ////
 ghost predicate subsetSum(t:int, r:seq<int>)
 {
 	exists s:seq<int>:: multiset(s) <= multiset(r) && sum_seq(s) == t
 }
 
 
-// This problem is known as Partition.
+//// PARTITION ////
 ghost predicate partition(r:seq<int>)
 {
 	exists s:seq<int>:: multiset(s) <= multiset(r)  && sum_seq(r) == 2*sum_seq(s)
 }
 
 
-/**
-The reduction: Subsetsum <=p Partition
-**/
+/***************
+REDUCTION: SUBSET-SUM <=p PARTITION
+****************/
 
 
-// Reduction function
+//// REDUCTION FUNCTION ////
+
 // The reduction only adds a new element to the sequence r.
 function subSetToPartition(t:int, r:seq<int>): seq<int>
 {
 	r + [sum_seq(r) - 2*t]
 }
 
+//// REDUCTION CORRECTNESS
 
 //Reduction correctness
 lemma reduction_lemma  (t:int, r:seq<int>)
@@ -60,7 +66,7 @@ lemma reduction_lemma  (t:int, r:seq<int>)
 	}
 }
 
-
+//Forward reduction: SSS(C) ==> Partition(f(C))
 lemma forward_lemma (t:int, r:seq<int>)
 	requires subsetSum(t, r) 
 	ensures partition(subSetToPartition(t, r)) 
@@ -75,7 +81,7 @@ lemma forward_lemma (t:int, r:seq<int>)
 	//assert partition(nr);	
 }
 
-
+//Backward reduction: Partition(f(C)) ==> SSS(C)
 lemma backward_lemma (t:int, r:seq<int>)
 	requires partition(subSetToPartition(t, r)) 
 	ensures subsetSum(t, r)
@@ -85,7 +91,7 @@ lemma backward_lemma (t:int, r:seq<int>)
 	var i := sum_seq(r) - 2*t;
 	var nr := r + [i];
 	var s :| multiset(s) <= multiset(nr)  && sum_seq(nr) == 2*sum_seq(s);	
-	//assert sum_seq(s) == sum_seq(r) - t;
+	// assert sum_seq(s) == sum_seq(r) - t;
 	if i !in multiset(s)
 	{
 		var sm := seq_from_multiset(multiset(r) - multiset(s));
@@ -101,7 +107,7 @@ lemma backward_lemma (t:int, r:seq<int>)
 }
 
 
-///// Auxiliar lemmas for sequences and multisets //////////////////////
+// Auxiliar lemmas.
 
 lemma distributive_sum_seq_lemma(s:seq<int>, r:seq<int>)
 	ensures sum_seq(s + r) == sum_seq(s) + sum_seq(r)
